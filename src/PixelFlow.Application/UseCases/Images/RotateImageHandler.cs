@@ -8,7 +8,8 @@ namespace PixelFlow.Application.UseCases.Images;
 public sealed record RotateImageCommand(Guid UserId, Guid ImageId, RotationAngle Angle);
 
 public sealed class RotateImageHandler(
-    IImageRepository images, IFileStorage storage, IImageProcessor processor)
+    IImageRepository images, IFileStorage storage, IImageProcessor processor,
+    IImageChangeNotifier notifier)
 {
     public async Task<ImageVersionDto> HandleAsync(RotateImageCommand cmd, CancellationToken ct = default)
     {
@@ -35,6 +36,8 @@ public sealed class RotateImageHandler(
             height: result.Height);
 
         await images.SaveChangesAsync(ct);
-        return ImageVersionDto.From(version, image.CurrentVersionId);
+        var dto = ImageVersionDto.From(version, image.CurrentVersionId);
+        await notifier.NotifyAsync(image.Id, dto, ct);
+        return dto;
     }
 }

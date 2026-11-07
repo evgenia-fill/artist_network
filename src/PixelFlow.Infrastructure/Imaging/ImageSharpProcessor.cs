@@ -29,30 +29,46 @@ public sealed class ImageSharpProcessor : IImageProcessor
         }
     }
 
-    public Task<ProcessedImage> RotateAsync(Stream input, RotationAngle angle, CancellationToken ct = default)
-    {
-        var mode = angle switch
+    public Task<ProcessedImage> RotateAsync(Stream input, RotationAngle angle, CancellationToken ct = default) =>
+        ProcessAsync(input, image => image.Mutate(x => x.Rotate(GetRotateMode(angle))), ct);
+
+    public Task<ProcessedImage> FlipAsync(Stream input, FlipAxis axis, CancellationToken ct = default) =>
+        ProcessAsync(input, image => image.Mutate(x => x.Flip(GetFlipMode(axis))), ct);
+
+    public Task<ProcessedImage> ApplyTemplateAsync(
+        Stream input, IReadOnlyList<ImageEditStep> steps, CancellationToken ct = default) =>
+        ProcessAsync(input, image => image.Mutate(context =>
         {
-            RotationAngle.Degrees90 => RotateMode.Rotate90,
-            RotationAngle.Degrees180 => RotateMode.Rotate180,
-            RotationAngle.Degrees270 => RotateMode.Rotate270,
-            _ => throw new ValidationException("Допустимые углы: 90, 180, 270")
-        };
+            foreach (var step in steps)
+            {
+                switch (step)
+                {
+                    case RotateEditStep rotate:
+                        context.Rotate(GetRotateMode(rotate.Angle));
+                        break;
+                    case FlipEditStep flip:
+                        context.Flip(GetFlipMode(flip.Axis));
+                        break;
+                    default:
+                        throw new ValidationException("Шаблон содержит неподдерживаемое действие");
+                }
+            }
+        }), ct);
 
-        return ProcessAsync(input, image => image.Mutate(x => x.Rotate(mode)), ct);
-    }
-
-    public Task<ProcessedImage> FlipAsync(Stream input, FlipAxis axis, CancellationToken ct = default)
+    private static RotateMode GetRotateMode(RotationAngle angle) => angle switch
     {
-        var mode = axis switch
-        {
-            FlipAxis.Horizontal => FlipMode.Horizontal,
-            FlipAxis.Vertical => FlipMode.Vertical,
-            _ => throw new ValidationException("Допустимые оси: horizontal, vertical")
-        };
+        RotationAngle.Degrees90 => RotateMode.Rotate90,
+        RotationAngle.Degrees180 => RotateMode.Rotate180,
+        RotationAngle.Degrees270 => RotateMode.Rotate270,
+        _ => throw new ValidationException("Допустимые углы: 90, 180, 270")
+    };
 
-        return ProcessAsync(input, image => image.Mutate(x => x.Flip(mode)), ct);
-    }
+    private static FlipMode GetFlipMode(FlipAxis axis) => axis switch
+    {
+        FlipAxis.Horizontal => FlipMode.Horizontal,
+        FlipAxis.Vertical => FlipMode.Vertical,
+        _ => throw new ValidationException("Допустимые оси: horizontal, vertical")
+    };
 
     private static async Task<ProcessedImage> ProcessAsync(
         Stream input, Action<SharpImage> operation, CancellationToken ct)
