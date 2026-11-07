@@ -60,3 +60,16 @@ Content-Type: image/jpeg
 
 < ./PixelFlow.Api.http
 --b--
+
+### 11. Применить один шаблон (поворот + отражение) к изображению
+### Для нескольких фотографий добавьте их GUID в imageIds (максимум 10).
+POST {{host}}/api/images/batch/apply-template
+Content-Type: application/json
+
+{
+  "imageIds": ["{{imageId}}"],
+  "steps": [
+    { "type": "rotate", "degrees": 90 },
+    { "type": "flip", "axis": "horizontal" }
+  ]
+}
