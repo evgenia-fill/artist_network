@@ -12,6 +12,8 @@ public static class DependencyInjection
         services.AddScoped<ResetImageHandler>();
         services.AddScoped<RestoreVersionHandler>();
         services.AddScoped<GetVersionsHandler>();
+        services.AddScoped<UploadImageHandler>();
+        services.AddScoped<GetImageFileHandler>();
         
         return services;
     }
