@@ -1,6 +1,62 @@
-@PixelFlow.Api_HostAddress = http://localhost:5193
+@host = http://localhost:5193
 
-GET {{PixelFlow.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Загрузка
+POST {{host}}/api/images
+Content-Type: multipart/form-data; boundary=b
 
-###
+--b
+Content-Disposition: form-data; name="file"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--b--
+
+> {%
+    client.global.set("imageId", response.body.imageId);
+    client.global.set("version1", response.body.version.id);
+%}
+
+### 2. Поворот на 90
+POST {{host}}/api/images/{{imageId}}/rotate
+Content-Type: application/json
+
+{ "degrees": 90 }
+
+### 3. Отражение
+POST {{host}}/api/images/{{imageId}}/flip
+Content-Type: application/json
+
+{ "axis": "horizontal" }
+
+### 4. История версий
+GET {{host}}/api/images/{{imageId}}/versions
+
+### 5. Откат к версии 1
+POST {{host}}/api/images/{{imageId}}/versions/{{version1}}/restore
+
+### 6. Сброс
+POST {{host}}/api/images/{{imageId}}/reset
+
+### 7. Текущий файл
+GET {{host}}/api/images/{{imageId}}/file
+
+### 8. Чужой пользователь (ожидаем 404)
+GET {{host}}/api/images/{{imageId}}/versions
+X-User-Id: 22222222-2222-2222-2222-222222222222
+
+### 9. Неверный угол (ожидаем 400)
+POST {{host}}/api/images/{{imageId}}/rotate
+Content-Type: application/json
+
+{ "degrees": 45 }
+
+### 10. Не картинка (ожидаем 400): подставьте любой текстовый файл
+POST {{host}}/api/images
+Content-Type: multipart/form-data; boundary=b
+
+--b
+Content-Disposition: form-data; name="file"; filename="fake.jpg"
+Content-Type: image/jpeg
+
+< ./PixelFlow.Api.http
+--b--
