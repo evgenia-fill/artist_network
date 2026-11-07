@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Лаборатория — редактор изображений</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eceae6;--panel:#f7f6f3;--ink:#1d1f22;--mute:#6c6f73;--line:#d6d3cc;--accent:#c93c32;--canvas:#2b2d30;--chip:#e4e1da;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181a;--panel:#212326;--ink:#ecebe8;--mute:#9a9da1;--line:#35373b;--canvas:#101112;--chip:#2c2e32}}
+:root[data-theme="dark"]{--bg:#17181a;--panel:#212326;--ink:#ecebe8;--mute:#9a9da1;--line:#35373b;--canvas:#101112;--chip:#2c2e32}
+*{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:230px 1fr 300px;grid-template-rows:auto 1fr;height:100%}
+header{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:600;font-size:16px;display:flex;align-items:center;gap:8px}
+.logo i{width:12px;height:12px;border-radius:50%;background:var(--accent);display:inline-block}
+.sp{flex:1}
+.store{font-size:12px;color:var(--mute);text-align:right}
+.bar{width:140px;height:5px;background:var(--chip);border-radius:3px;margin-top:4px;overflow:hidden}.bar b{display:block;height:100%;background:var(--accent)}
+.me{display:flex;align-items:center;gap:8px}
+.av{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:600;font-size:12px}
+.btn{border:1px solid var(--line);background:var(--chip);border-radius:6px;padding:6px 12px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+aside,.right{background:var(--panel);overflow:auto;padding:14px}
+aside{border-right:1px solid var(--line)}.right{border-left:1px solid var(--line)}
+h3{margin:0 0 10px;font-size:13px;font-weight:600}
+.proj{display:flex;gap:10px;width:100%;text-align:left;padding:8px;border:1px solid transparent;border-radius:8px;background:none;margin-bottom:4px}
+.proj:hover{background:var(--chip)}.proj.on{border-color:var(--accent);background:var(--chip)}
+.proj img{width:52px;height:40px;object-fit:cover;border-radius:4px;flex:none}
+.proj small{color:var(--mute);display:block;font-size:12px}
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.tools{display:flex;gap:6px;padding:10px 14px;flex-wrap:wrap;border-bottom:1px solid var(--line);background:var(--panel)}
+.stage{flex:1;background:var(--canvas);display:grid;place-items:center;overflow:hidden;padding:24px;min-height:0}
+.stage img{max-width:100%;max-height:100%;box-shadow:0 8px 30px #0008;transition:filter .12s,transform .25s}
+.meta{padding:8px 14px;font-size:12px;color:var(--mute);border-top:1px solid var(--line);background:var(--panel);display:flex;gap:16px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tabs button{flex:1;border:0;background:var(--chip);padding:6px;border-radius:6px;font-size:13px}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+.sl{margin-bottom:12px}.sl label{display:flex;justify-content:space-between;font-size:13px}.sl label span{color:var(--mute)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.ver{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer;background:none;width:100%;text-align:left}
+.ver.on{border-color:var(--accent)}
+.ver code{display:block;font:12px/1.4 ui-monospace,monospace;color:var(--mute);margin-top:4px;word-break:break-word}
+.fr{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px}.kv dt{color:var(--mute)}.kv dd{margin:0;word-break:break-all}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media(max-width:900px){.app{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;height:auto}aside,.right{border:0;border-top:1px solid var(--line)}.stage{height:50vh}body,html{height:auto}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo"><i></i>Лаборатория</div>
+  <div class="sp"></div>
+  <div class="store" id="store"></div>
+  <div class="me"><div class="av" id="av"></div><div><div id="uname" style="font-weight:500"></div><div id="udesc" style="font-size:12px;color:var(--mute)"></div></div></div>
+  <button class="btn" id="theme" aria-label="Сменить тему">Тема</button>
+</header>
+<aside><h3>Проекты</h3><div id="projects"></div></aside>
+<main>
+  <div class="tools">
+    <button class="btn" data-a="rl">Повернуть ⟲</button>
+    <button class="btn" data-a="rr">Повернуть ⟳</button>
+    <button class="btn" data-a="fx">Отразить</button>
+    <button class="btn" data-a="reset">Сбросить</button>
+    <span class="sp"></span>
+    <button class="btn pri" data-a="save">Сохранить версию</button>
+  </div>
+  <div class="stage"><img id="img" alt="Редактируемое изображение"></div>
+  <div class="meta" id="meta"></div>
+</main>
+<div class="right">
+  <div class="tabs" role="tablist">
+    <button class="on" data-t="adj">Правки</button><button data-t="ver">Версии</button><button data-t="info">Файл</button><button data-t="fr">Друзья</button>
+  </div>
+  <div id="tab"></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ---------- Мок-данные по схеме БД ----------
+function art(a,b,c,shape){
+  const s=shape===1?`<circle cx="520" cy="190" r="90" fill="${c}"/><path d="M0 420 L180 230 L320 360 L450 270 L800 480 L0 480Z" fill="${a}" opacity=".85"/>`
+  :shape===2?`<rect x="120" y="90" width="260" height="260" rx="130" fill="${c}"/><rect x="330" y="170" width="300" height="200" fill="${a}" opacity=".8"/>`
+  :`<circle cx="200" cy="260" r="150" fill="${c}"/><circle cx="480" cy="220" r="110" fill="${a}" opacity=".85"/><circle cx="600" cy="360" r="70" fill="#fff" opacity=".5"/>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${b}"/><stop offset="1" stop-color="${a}"/></linearGradient></defs><rect width="800" height="480" fill="url(#g)"/>${s}</svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+const DB={
+ users:[{id:'u-001',name:'Алиса Королёва',description:'Фотограф, цветокоррекция',storage_link:'s3://lab-bucket/alice',created_at:'2025-03-14T10:22:00Z',stat_id:'st-77'},
+  {id:'u-002',name:'Максим Орлов',description:'Дизайнер интерфейсов'},{id:'u-003',name:'Нина Петрова',description:'Иллюстратор'},{id:'u-004',name:'Денис Волков',description:'Ретушёр'}],
+ storages:[{id:'s-1',link:'s3://lab-bucket/alice/originals',created_at:'2025-03-14T10:25:00Z'}],
+ images:[
+  {id:1,storage_id:'s-1',image_link:art('#e8744f','#f6c177','#fff2c9',1),size:2840000,height:480,width:800,project_id:1},
+  {id:2,storage_id:'s-1',image_link:art('#2f6f8f','#9ad0e0','#f5e6c8',2),size:1920000,height:480,width:800,project_id:2},
+  {id:3,storage_id:'s-1',image_link:art('#7a4fa3','#f2a1c4','#ffe3a3',3),size:3310000,height:480,width:800,project_id:3},
+  {id:4,storage_id:'s-1',image_link:art('#3f8f5a','#d4e8a0','#fff7d6',1),size:1470000,height:480,width:800,project_id:4}],
+ projects:[{id:1,user_id:'u-001',source_id:1,version_id:3},{id:2,user_id:'u-001',source_id:2,version_id:5},{id:3,user_id:'u-001',source_id:3,version_id:6},{id:4,user_id:'u-001',source_id:4,version_id:7}],
+ versions:[
+  {id:1,operations:{},project_id:1,result_file_id:'f-101',created_at:'2025-10-02T09:10:00Z'},
+  {id:2,operations:{brightness:110,contrast:105},project_id:1,result_file_id:'f-102',created_at:'2025-10-02T09:40:00Z'},
+  {id:3,operations:{brightness:112,contrast:118,saturate:130,hue:-12},project_id:1,result_file_id:'f-103',created_at:'2025-10-03T18:05:00Z'},
+  {id:4,operations:{},project_id:2,result_file_id:'f-201',created_at:'2025-10-10T12:00:00Z'},
+  {id:5,operations:{grayscale:100,contrast:125,rotate:90},project_id:2,result_file_id:'f-202',created_at:'2025-10-11T08:30:00Z'},
+  {id:6,operations:{sepia:70,blur:1.5,saturate:90},project_id:3,result_file_id:'f-301',created_at:'2025-10-20T14:15:00Z'},
+  {id:7,operations:{brightness:95,saturate:150,flipX:true},project_id:4,result_file_id:'f-401',created_at:'2025-10-28T19:45:00Z'}],
+ friendships:[{id:1,user_id:'u-001',friend_id:'u-002',created_at:'2025-04-01T00:00:00Z'},{id:2,user_id:'u-001',friend_id:'u-003',created_at:'2025-06-12T00:00:00Z'},{id:3,user_id:'u-001',friend_id:'u-004',created_at:'2025-09-30T00:00:00Z'}]
+};
+const DEF={brightness:100,contrast:100,saturate:100,hue:0,grayscale:0,sepia:0,blur:0,rotate:0,flipX:false};
+const SL=[['brightness','Яркость',0,200,1,'%'],['contrast','Контраст',0,200,1,'%'],['saturate','Насыщенность',0,200,1,'%'],['hue','Оттенок',-180,180,1,'°'],['grayscale','Ч/б',0,100,1,'%'],['sepia','Сепия',0,100,1,'%'],['blur','Размытие',0,10,.5,'px']];
+const ME=DB.users[0], $=id=>document.getElementById(id);
+let proj=DB.projects[0], ops={...DEF}, tab='adj';
+const fmt=d=>new Date(d).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+const mb=n=>(n/1e6).toFixed(1)+' МБ';
+const imgOf=p=>DB.images.find(i=>i.id===p.source_id);
+const vers=p=>DB.versions.filter(v=>v.project_id===p.id);
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),1800)}
+function apply(){
+  const o=ops;
+  $('img').style.filter=`brightness(${o.brightness}%) contrast(${o.contrast}%) saturate(${o.saturate}%) hue-rotate(${o.hue}deg) grayscale(${o.grayscale}%) sepia(${o.sepia}%) blur(${o.blur}px)`;
+  $('img').style.transform=`rotate(${o.rotate}deg) scaleX(${o.flipX?-1:1})`;
+}
+function diff(o){const r={};for(const k in DEF)if(o[k]!==undefined&&o[k]!==DEF[k])r[k]=o[k];return r}
+function loadProject(p){
+  proj=p;const cur=DB.versions.find(v=>v.id===p.version_id);ops={...DEF,...(cur?cur.operations:{})};
+  $('img').src=imgOf(p).image_link;apply();renderAll();
+}
+function renderProjects(){
+  $('projects').innerHTML=DB.projects.map(p=>{const i=imgOf(p);return `<button class="proj ${p===proj?'on':''}" data-p="${p.id}"><img src="${i.image_link}" alt=""><span>Проект #${p.id}<small>${vers(p).length} верс. · ${mb(i.size)}</small></span></button>`}).join('');
+  $('projects').querySelectorAll('button').forEach(b=>b.onclick=()=>loadProject(DB.projects.find(p=>p.id==b.dataset.p)));
+}
+function renderMeta(){const i=imgOf(proj);$('meta').innerHTML=`<span>${i.width}×${i.height}</span><span>${mb(i.size)}</span><span>Версия v${proj.version_id}</span>`}
+function renderTab(){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  const t=$('tab');
+  if(tab==='adj'){
+    t.innerHTML=SL.map(([k,l,mn,mx,st,u])=>`<div class="sl"><label>${l}<span id="v-${k}">${ops[k]}${u}</span></label><input type="range" min="${mn}" max="${mx}" step="${st}" value="${ops[k]}" data-k="${k}" data-u="${u}" aria-label="${l}"></div>`).join('');
+    t.querySelectorAll('input').forEach(r=>r.oninput=()=>{ops[r.dataset.k]=+r.value;$('v-'+r.dataset.k).textContent=r.value+r.dataset.u;apply()});
+  }else if(tab==='ver'){
+    t.innerHTML=vers(proj).slice().reverse().map(v=>`<button class="ver ${v.id===proj.version_id?'on':''}" data-v="${v.id}"><b>v${v.id}</b> <span style="color:var(--mute)">${fmt(v.created_at)}</span><code>${Object.keys(diff(v.operations)).length?JSON.stringify(diff(v.operations)):'без изменений'}</code><code>result_file_id: ${v.result_file_id}</code></button>`).join('');
+    t.querySelectorAll('.ver').forEach(b=>b.onclick=()=>{proj.version_id=+b.dataset.v;const v=DB.versions.find(x=>x.id===proj.version_id);ops={...DEF,...v.operations};apply();renderAll();toast('Открыта версия v'+v.id)});
+  }else if(tab==='info'){
+    const i=imgOf(proj),s=DB.storages.find(x=>x.id===i.storage_id);
+    t.innerHTML=`<dl class="kv"><dt>image.id</dt><dd>${i.id}</dd><dt>size</dt><dd>${i.size} байт</dd><dt>width × height</dt><dd>${i.width} × ${i.height}</dd><dt>project_id</dt><dd>${i.project_id}</dd><dt>storage.id</dt><dd>${s.id}</dd><dt>storage.link</dt><dd>${s.link}</dd><dt>создано</dt><dd>${fmt(s.created_at)}</dd></dl>`;
+  }else{
+    t.innerHTML=DB.friendships.filter(f=>f.user_id===ME.id).map(f=>{const u=DB.users.find(x=>x.id===f.friend_id);return `<div class="fr"><div class="av">${u.name[0]}</div><div><div style="font-weight:500">${u.name}</div><div style="font-size:12px;color:var(--mute)">${u.description} · с ${new Date(f.created_at).toLocaleDateString('ru-RU')}</div></div></div>`}).join('');
+  }
+}
+function renderAll(){renderProjects();renderMeta();renderTab()}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTab()});
+document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+  const a=b.dataset.a;
+  if(a==='rl')ops.rotate-=90;if(a==='rr')ops.rotate+=90;if(a==='fx')ops.flipX=!ops.flipX;
+  if(a==='reset'){ops={...DEF};toast('Правки сброшены')}
+  if(a==='save'){
+    const id=Math.max(...DB.versions.map(v=>v.id))+1;
+    DB.versions.push({id,operations:diff(ops),project_id:proj.id,result_file_id:'f-'+proj.id+String(id).padStart(2,'0'),created_at:new Date().toISOString()});
+    proj.version_id=id;toast('Сохранена версия v'+id);tab='ver';
+  }
+  apply();renderAll();
+});
+$('theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==='#17181a';r.dataset.theme=d?'light':'dark'};
+// шапка
+$('uname').textContent=ME.name;$('udesc').textContent=ME.description;$('av').textContent=ME.name[0];
+const used=DB.images.reduce((s,i)=>s+i.size,0);
+$('store').innerHTML=`${ME.storage_link}<div>${mb(used)} из 50 МБ</div><div class="bar"><b style="width:${used/50e6*100}%"></b></div>`;
+loadProject(proj);
+</script>
+</body>
+</html>
