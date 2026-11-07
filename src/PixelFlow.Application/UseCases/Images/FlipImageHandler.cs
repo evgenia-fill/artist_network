@@ -8,7 +8,8 @@ namespace PixelFlow.Application.UseCases.Images;
 public sealed record FlipImageCommand(Guid UserId, Guid ImageId, FlipAxis Axis);
 
 public sealed class FlipImageHandler(
-    IImageRepository images, IFileStorage storage, IImageProcessor processor)
+    IImageRepository images, IFileStorage storage, IImageProcessor processor,
+    IImageChangeNotifier notifier)
 {
     public async Task<ImageVersionDto> HandleAsync(FlipImageCommand cmd, CancellationToken ct = default)
     {
@@ -33,6 +34,8 @@ public sealed class FlipImageHandler(
             height: result.Height);
 
         await images.SaveChangesAsync(ct);
-        return ImageVersionDto.From(version, image.CurrentVersionId);
+        var dto = ImageVersionDto.From(version, image.CurrentVersionId);
+        await notifier.NotifyAsync(image.Id, dto, ct);
+        return dto;
     }
 }

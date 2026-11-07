@@ -13,8 +13,8 @@ public static class DependencyInjection
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IImageProcessor, ImageSharpProcessor>();
-        services.AddSingleton<IFileStorage, LocalFileStorage>();
-        services.AddSingleton<IImageRepository, InMemoryImageRepository>(); 
+        services.AddSingleton<IFileStorage>(new LocalFileStorage(configuration["Storage:Path"] ?? "uploads"));
+        services.AddSingleton<IImageRepository, InMemoryImageRepository>();
         return services;
     }
 }

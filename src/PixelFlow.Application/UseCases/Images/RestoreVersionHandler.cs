@@ -6,7 +6,7 @@ namespace PixelFlow.Application.UseCases.Images;
 
 public sealed record RestoreVersionCommand(Guid UserId, Guid ImageId, Guid VersionId);
 
-public sealed class RestoreVersionHandler(IImageRepository images)
+public sealed class RestoreVersionHandler(IImageRepository images, IImageChangeNotifier notifier)
 {
     public async Task<ImageVersionDto> HandleAsync(RestoreVersionCommand cmd, CancellationToken ct = default)
     {
@@ -20,6 +20,8 @@ public sealed class RestoreVersionHandler(IImageRepository images)
         image.RestoreTo(target.Id);
         await images.SaveChangesAsync(ct);
 
-        return ImageVersionDto.From(target, image.CurrentVersionId);
+        var dto = ImageVersionDto.From(target, image.CurrentVersionId);
+        await notifier.NotifyAsync(image.Id, dto, ct);
+        return dto;
     }
 }

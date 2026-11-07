@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PixelFlow.Api.Auth;
 using PixelFlow.Api.Contracts;
 using PixelFlow.Application.Exceptions;
 using PixelFlow.Application.Models;
@@ -15,12 +16,10 @@ public sealed class ImagesController(
     FlipImageHandler flip,
     ResetImageHandler reset,
     RestoreVersionHandler restore,
-    GetVersionsHandler getVersions) : ControllerBase
+    GetVersionsHandler getVersions,
+    ApplyImageTemplateHandler applyTemplate) : ControllerBase
 {
-    private Guid CurrentUserId =>
-        Request.Headers.TryGetValue("X-User-Id", out var value) && Guid.TryParse(value, out var id)
-            ? id
-            : Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private Guid CurrentUserId => DemoUserId.Resolve(Request.Headers);
 
     [HttpPost]
     [Consumes("multipart/form-data")]
@@ -57,6 +56,43 @@ public sealed class ImagesController(
 
         var version = await flip.HandleAsync(new FlipImageCommand(CurrentUserId, id, axis), ct);
         return Ok(version);
+    }
+
+    [HttpPost("batch/apply-template")]
+    public async Task<ActionResult<IReadOnlyList<AppliedImageTemplate>>> ApplyTemplate(
+        ApplyImageTemplateRequest request, CancellationToken ct)
+    {
+        if (request.ImageIds is null || request.Steps is null)
+            throw new ValidationException("Укажите imageIds и steps");
+
+        var steps = request.Steps.Select(ParseStep).ToArray();
+        var result = await applyTemplate.HandleAsync(
+            new ApplyImageTemplateCommand(CurrentUserId, request.ImageIds, steps), ct);
+        return Ok(result);
+    }
+
+    private static ImageEditStep ParseStep(ImageTemplateStepRequest? step)
+    {
+        if (step is null)
+            throw new ValidationException("Шаг шаблона не может быть null");
+
+        if (string.Equals(step.Type, "rotate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (step.Degrees is not (90 or 180 or 270) || step.Axis is not null)
+                throw new ValidationException("Поворот: degrees должен быть 90, 180 или 270");
+            return new RotateEditStep((RotationAngle)step.Degrees.Value);
+        }
+
+        if (string.Equals(step.Type, "flip", StringComparison.OrdinalIgnoreCase))
+        {
+            if (step.Degrees is not null ||
+                (!string.Equals(step.Axis, "horizontal", StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals(step.Axis, "vertical", StringComparison.OrdinalIgnoreCase)))
+                throw new ValidationException("Отражение: axis должен быть horizontal или vertical");
+            return new FlipEditStep(Enum.Parse<FlipAxis>(step.Axis!, ignoreCase: true));
+        }
+
+        throw new ValidationException("Допустимые действия: rotate, flip");
     }
 
     [HttpPost("{id:guid}/reset")]
