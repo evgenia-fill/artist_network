@@ -16,12 +16,12 @@ export const fixtures = {
   {id:4,storage_id:'s-1',image_link:art('#3f8f5a','#d4e8a0','#fff7d6',1),size:1470000,height:480,width:800,project_id:4}],
  projects:[{id:1,user_id:'u-001',source_id:1,version_id:3},{id:2,user_id:'u-001',source_id:2,version_id:5},{id:3,user_id:'u-001',source_id:3,version_id:6},{id:4,user_id:'u-001',source_id:4,version_id:7}],
  versions:[
-  {id:1,operations:{},project_id:1,result_file_id:'f-101',created_at:'2025-10-02T09:10:00Z'},
-  {id:2,operations:{brightness:110,contrast:105},project_id:1,result_file_id:'f-102',created_at:'2025-10-02T09:40:00Z'},
-  {id:3,operations:{brightness:112,contrast:118,saturate:130,hue:-12},project_id:1,result_file_id:'f-103',created_at:'2025-10-03T18:05:00Z'},
-  {id:4,operations:{},project_id:2,result_file_id:'f-201',created_at:'2025-10-10T12:00:00Z'},
-  {id:5,operations:{grayscale:100,contrast:125,rotate:90},project_id:2,result_file_id:'f-202',created_at:'2025-10-11T08:30:00Z'},
-  {id:6,operations:{sepia:70,blur:1.5,saturate:90},project_id:3,result_file_id:'f-301',created_at:'2025-10-20T14:15:00Z'},
-  {id:7,operations:{brightness:95,saturate:150,flipX:true},project_id:4,result_file_id:'f-401',created_at:'2025-10-28T19:45:00Z'}],
+  {id:1,number:1,operations:{},project_id:1,result_file_id:'f-101',created_at:'2025-10-02T09:10:00Z'},
+  {id:2,number:2,operations:{brightness:110,contrast:105},project_id:1,result_file_id:'f-102',created_at:'2025-10-02T09:40:00Z'},
+  {id:3,number:3,operations:{brightness:112,contrast:118,saturate:130,hue:-12},project_id:1,result_file_id:'f-103',created_at:'2025-10-03T18:05:00Z'},
+  {id:4,number:1,operations:{},project_id:2,result_file_id:'f-201',created_at:'2025-10-10T12:00:00Z'},
+  {id:5,number:2,operations:{grayscale:100,contrast:125,rotate:90},project_id:2,result_file_id:'f-202',created_at:'2025-10-11T08:30:00Z'},
+  {id:6,number:1,operations:{sepia:70,blur:1.5,saturate:90},project_id:3,result_file_id:'f-301',created_at:'2025-10-20T14:15:00Z'},
+  {id:7,number:1,operations:{brightness:95,saturate:150,flipX:true},project_id:4,result_file_id:'f-401',created_at:'2025-10-28T19:45:00Z'}],
  friendships:[{id:1,user_id:'u-001',friend_id:'u-002',created_at:'2025-04-01T00:00:00Z'},{id:2,user_id:'u-001',friend_id:'u-003',created_at:'2025-06-12T00:00:00Z'},{id:3,user_id:'u-001',friend_id:'u-004',created_at:'2025-09-30T00:00:00Z'}]
 };

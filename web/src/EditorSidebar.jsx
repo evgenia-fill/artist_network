@@ -61,7 +61,7 @@ function Versions({ project, onRestore, busy }) {
         onClick={() => onRestore(version.id)}
         disabled={busy}
       >
-        <b>v{version.id}</b>{' '}
+        <b>v{version.number}</b>{' '}
         <time dateTime={version.created_at}>{dateTime.format(new Date(version.created_at))}</time>
         <code>{Object.keys(operations).length ? JSON.stringify(operations) : 'без изменений'}</code>
         <code>result_file_id: {version.result_file_id}</code>

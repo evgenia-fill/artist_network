@@ -101,8 +101,10 @@ export function mockEditor() {
       }
 
       const id = nextVersionId++;
+      const number = Math.max(0, ...project.versions.map((version) => version.number)) + 1;
       project.versions.push({
         id,
+        number,
         operations: changedOperations(operations),
         project_id: project.id,
         result_file_id: `f-${project.id}${String(id).padStart(2, '0')}`,

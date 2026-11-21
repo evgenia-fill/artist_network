@@ -7,9 +7,12 @@ function megabytes(bytes) {
   return `${(bytes / 1_000_000).toFixed(1)} МБ`;
 }
 
+function currentVersion(project) {
+  return project.versions.find((version) => version.id === project.currentVersionId);
+}
+
 function currentOperations(project) {
-  const version = project.versions.find((item) => item.id === project.currentVersionId);
-  return { ...defaults, ...version?.operations };
+  return { ...defaults, ...currentVersion(project)?.operations };
 }
 
 function Header({ user, usedBytes, quotaBytes }) {
@@ -59,7 +62,8 @@ function ProjectList({ projects, projectId, onSelect, busy }) {
 function Workspace({ project, operations, setOperations, onSave, onReset, busy }) {
   if (!project) return <main className="page-status">Выберите проект, чтобы открыть редактор</main>;
 
-  const { image, currentVersionId } = project;
+  const { image } = project;
+  const version = currentVersion(project);
   const { rotate, flipX } = operations;
   const quarterTurn = rotate % 180 !== 0;
   const style = {
@@ -90,7 +94,7 @@ function Workspace({ project, operations, setOperations, onSave, onReset, busy }
       <div className="meta">
         <span>{image.width}×{image.height}</span>
         <span>{megabytes(image.size)}</span>
-        {currentVersionId != null && <span>Версия v{currentVersionId}</span>}
+        {version && <span>Версия v{version.number}</span>}
       </div>
     </main>
   );
@@ -136,7 +140,7 @@ function Editor({ initialData }) {
       }));
       setOperations(currentOperations(updated));
       setTab('versions');
-      setNotice({ text: `${message} v${updated.currentVersionId}` });
+      setNotice({ text: `${message} v${currentVersion(updated).number}` });
     } catch (failure) {
       setError(failure.message);
     } finally {
