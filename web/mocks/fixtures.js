@@ -27,9 +27,9 @@ export const fixtures = {
   {id:2,user_id:'u-001',source_id:2,version_id:5,likes:2},
   {id:3,user_id:'u-001',source_id:3,version_id:6,likes:6},
   {id:4,user_id:'u-001',source_id:4,version_id:7,likes:0},
-  {id:5,user_id:'u-002',source_id:5,version_id:8,likes:12},
+  {id:5,user_id:'u-002',source_id:5,version_id:13,likes:12},
   {id:6,user_id:'u-002',source_id:6,version_id:9,likes:5,likedByMe:true},
-  {id:7,user_id:'u-003',source_id:7,version_id:10,likes:8},
+  {id:7,user_id:'u-003',source_id:7,version_id:14,likes:8},
   {id:8,user_id:'u-004',source_id:8,version_id:11,likes:0}],
  versions:[
   {id:1,number:1,operations:{},project_id:1,result_file_id:'f-101',created_at:'2025-10-02T09:10:00Z'},
@@ -42,6 +42,9 @@ export const fixtures = {
   {id:8,number:1,operations:{contrast:115},project_id:5,result_file_id:'f-501',created_at:'2025-10-29T14:00:00Z'},
   {id:9,number:1,operations:{flipX:true},project_id:6,result_file_id:'f-601',created_at:'2025-10-30T10:30:00Z'},
   {id:10,number:1,operations:{saturate:120},project_id:7,result_file_id:'f-701',created_at:'2025-10-31T16:15:00Z'},
-  {id:11,number:1,operations:{contrast:110,rotate:90},project_id:8,result_file_id:'f-801',created_at:'2025-11-01T11:00:00Z'}],
+  {id:11,number:1,operations:{contrast:110,rotate:90},project_id:8,result_file_id:'f-801',created_at:'2025-11-01T11:00:00Z'},
+  {id:12,number:2,operations:{sepia:65,brightness:110},project_id:5,result_file_id:'f-502',created_at:'2025-10-29T14:30:00Z'},
+  {id:13,number:3,operations:{saturate:145,contrast:120,rotate:90},project_id:5,result_file_id:'f-503',created_at:'2025-10-29T15:00:00Z'},
+  {id:14,number:2,operations:{grayscale:100,flipX:true},project_id:7,result_file_id:'f-702',created_at:'2025-10-31T17:00:00Z'}],
  friendships:[{id:1,user_id:'u-001',friend_id:'u-002',created_at:'2025-04-01T00:00:00Z'},{id:2,user_id:'u-001',friend_id:'u-003',created_at:'2025-06-12T00:00:00Z'},{id:3,user_id:'u-001',friend_id:'u-004',created_at:'2025-09-30T00:00:00Z'}]
 };

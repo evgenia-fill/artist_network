@@ -7,8 +7,8 @@ function megabytes(bytes) {
   return `${(bytes / 1_000_000).toFixed(1)} МБ`;
 }
 
-function currentVersion(project) {
-  return project.versions.find((version) => version.id === project.currentVersionId);
+function currentVersion(project, versionId = project.currentVersionId) {
+  return project.versions.find((version) => version.id === versionId);
 }
 
 function currentOperations(project) {
@@ -70,13 +70,12 @@ function ProjectList({ owner, projects, projectId, onSelect, busy }) {
   );
 }
 
-function Workspace({ project, owner, operations, setOperations, onSave, onReset, onLike, busy }) {
+function Workspace({ project, owner, version, operations, setOperations, onSave, onReset, onLike, busy }) {
   if (!project) {
     return <main className="page-status">{owner ? 'У друга пока нет проектов' : 'Выберите проект, чтобы открыть редактор'}</main>;
   }
 
   const { image } = project;
-  const version = currentVersion(project);
   const { rotate, flipX } = operations;
   const quarterTurn = rotate % 180 !== 0;
   const style = {
@@ -139,6 +138,7 @@ function Editor({ initialData }) {
   const projects = data.projects.filter((item) => item.ownerId === (owner?.id ?? data.user.id));
   const projectId = friendView ? friendView.projectId : ownProjectId;
   const project = projects.find((item) => item.id === projectId);
+  const version = project && currentVersion(project, friendView?.versionId);
 
   useEffect(() => {
     if (!notice) return;
@@ -148,7 +148,7 @@ function Editor({ initialData }) {
 
   function openProject(id) {
     if (friendView) {
-      setFriendView({ ...friendView, projectId: id });
+      if (id !== friendView.projectId) setFriendView({ ...friendView, projectId: id, versionId: undefined });
     } else {
       setOwnProjectId(id);
       setOperations(currentOperations(projects.find((item) => item.id === id)));
@@ -159,7 +159,7 @@ function Editor({ initialData }) {
   function openFriend(friend) {
     if (owner?.id === friend.id) return;
     const firstFriendProject = data.projects.find((item) => item.ownerId === friend.id);
-    setFriendView({ friend, projectId: firstFriendProject?.id });
+    setFriendView({ friend, projectId: firstFriendProject?.id, tab: 'friends' });
     setError('');
   }
 
@@ -211,7 +211,8 @@ function Editor({ initialData }) {
       <Workspace
         project={project}
         owner={owner}
-        operations={owner && project ? currentOperations(project) : operations}
+        version={version}
+        operations={owner ? { ...defaults, ...version?.operations } : operations}
         setOperations={setOperations}
         busy={busy}
         onReset={reset}
@@ -223,14 +224,17 @@ function Editor({ initialData }) {
       />
       <EditorSidebar
         project={project}
+        activeVersionId={version?.id}
         friends={data.friends}
         activeFriendId={owner?.id}
         onFriendSelect={openFriend}
         operations={operations}
         onAdjust={(key, value) => setOperations((previous) => ({ ...previous, [key]: value }))}
-        onRestore={(id) => updateVersion(() => restoreVersion(projectId, id), 'Открыта версия')}
-        tab={owner ? 'friends' : tab}
-        onTabChange={setTab}
+        onVersionSelect={friendView
+          ? (id) => setFriendView({ ...friendView, versionId: id })
+          : (id) => updateVersion(() => restoreVersion(projectId, id), 'Открыта версия')}
+        tab={friendView?.tab ?? tab}
+        onTabChange={friendView ? (id) => setFriendView({ ...friendView, tab: id }) : setTab}
         busy={busy}
         error={error}
       />

@@ -46,11 +46,11 @@ function Adjustments({ operations, onAdjust, busy }) {
   ));
 }
 
-function Versions({ project, onRestore, busy }) {
+function Versions({ project, activeVersionId, onSelect, busy }) {
   if (!project.versions.length) return <p>Сохранённых версий пока нет</p>;
 
   return project.versions.toReversed().map((version) => {
-    const active = project.currentVersionId === version.id;
+    const active = activeVersionId === version.id;
     const operations = changedOperations(version.operations);
 
     return (
@@ -58,7 +58,7 @@ function Versions({ project, onRestore, busy }) {
         key={version.id}
         className={active ? 'ver on' : 'ver'}
         aria-pressed={active}
-        onClick={() => onRestore(version.id)}
+        onClick={() => onSelect(version.id)}
         disabled={busy}
       >
         <b>v{version.number}</b>{' '}
@@ -104,12 +104,13 @@ function Friends({ friends, activeFriendId, onSelect, busy }) {
 }
 
 export function EditorSidebar({
-  project, friends, activeFriendId, onFriendSelect, operations, onAdjust, onRestore, tab, onTabChange, busy, error,
+  project, activeVersionId, friends, activeFriendId, onFriendSelect, operations, onAdjust, onVersionSelect,
+  tab, onTabChange, busy, error,
 }) {
   return (
     <aside className="right" aria-label="Параметры редактора">
       <div className="tabs" role="group" aria-label="Разделы редактора">
-        {tabs.filter(([id]) => !activeFriendId || id === 'friends').map(([id, label]) => (
+        {tabs.filter(([id]) => !activeFriendId || id !== 'adjustments').map(([id, label]) => (
           <button
             key={id}
             className={id === tab ? 'on' : undefined}
@@ -126,7 +127,9 @@ export function EditorSidebar({
       )}
       {!project && tab !== 'friends' && <p>Сначала выберите проект</p>}
       {project && tab === 'adjustments' && <Adjustments operations={operations} onAdjust={onAdjust} busy={busy} />}
-      {project && tab === 'versions' && <Versions project={project} onRestore={onRestore} busy={busy} />}
+      {project && tab === 'versions' && (
+        <Versions project={project} activeVersionId={activeVersionId} onSelect={onVersionSelect} busy={busy} />
+      )}
       {project && tab === 'file' && <FileDetails image={project.image} storage={project.storage} />}
     </aside>
   );
