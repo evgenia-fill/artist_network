@@ -4,6 +4,8 @@ using PixelFlow.Api.Contracts;
 using PixelFlow.Application.Exceptions;
 using PixelFlow.Application.Models;
 using PixelFlow.Application.UseCases.Images;
+using PixelFlow.Application.UseCases.Jobs;
+using PixelFlow.Application.UseCases.Jobs;
 
 namespace PixelFlow.Api.Controllers;
 
@@ -17,7 +19,8 @@ public sealed class ImagesController(
     ResetImageHandler reset,
     RestoreVersionHandler restore,
     GetVersionsHandler getVersions,
-    ApplyImageTemplateHandler applyTemplate) : ControllerBase
+    ApplyImageTemplateHandler applyTemplate,
+    CreateJobHandler createJob) : ControllerBase
 {
     private Guid CurrentUserId => DemoUserId.Resolve(Request.Headers);
 
@@ -93,6 +96,17 @@ public sealed class ImagesController(
         }
 
         throw new ValidationException("Допустимые действия: rotate, flip");
+    }
+    
+    [HttpPost("{id:guid}/jobs")]
+    public async Task<IActionResult> CreateJob(Guid id, CreateJobRequest request, CancellationToken ct)
+    {
+        if (request.Steps is null)
+            throw new ValidationException("Укажите steps");
+
+        var steps = request.Steps.Select(ParseStep).ToArray();
+        var job = await createJob.HandleAsync(new CreateJobCommand(CurrentUserId, id, steps), ct);
+        return AcceptedAtAction(nameof(JobsController.Get), "Jobs", new { id = job.Id }, job);
     }
 
     [HttpPost("{id:guid}/reset")]
