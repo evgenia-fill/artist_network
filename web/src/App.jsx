@@ -158,6 +158,8 @@ function Editor({ initialData }) {
 
   function openFriend(friend) {
     if (owner?.id === friend.id) return;
+    // TODO(API): если список проектов друга будет отдельным эндпоинтом, добавить запрос
+    // в editorApi.js и вызвать его здесь по friend.id перед выбором первого проекта.
     const firstFriendProject = data.projects.find((item) => item.ownerId === friend.id);
     setFriendView({ friend, projectId: firstFriendProject?.id, tab: 'friends' });
     setError('');
