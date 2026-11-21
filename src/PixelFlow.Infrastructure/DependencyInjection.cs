@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PixelFlow.Application.Abstractions;
@@ -14,7 +15,10 @@ public static class DependencyInjection
     {
         services.AddSingleton<IImageProcessor, ImageSharpProcessor>();
         services.AddSingleton<IFileStorage>(new LocalFileStorage(configuration["Storage:Path"] ?? "uploads"));
-        services.AddSingleton<IImageRepository, InMemoryImageRepository>();
+        services.AddDbContext<AppDbContext>(o => o
+            .UseNpgsql(configuration.GetConnectionString("Default"))
+            .UseSnakeCaseNamingConvention());
+        services.AddScoped<IImageRepository, ImageRepository>();
         return services;
     }
 }
