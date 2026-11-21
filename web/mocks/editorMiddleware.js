@@ -3,6 +3,7 @@ import { adjustments, changedOperations } from '../src/operations.js';
 
 const prefix = '/api/editor';
 const versionsRoute = /^\/projects\/([^/]+)\/versions(?:\/([^/]+)\/restore)?$/;
+const likeRoute = /^\/projects\/([^/]+)\/like$/;
 
 function sendJson(response, status, data) {
   response.writeHead(status, {
@@ -40,11 +41,19 @@ async function readJson(request) {
 function editorState() {
   const db = structuredClone(fixtures);
   const [user] = db.users;
-  const projects = db.projects.map((project) => {
+  const friends = db.friendships.filter((friendship) => friendship.user_id === user.id).map((friendship) => ({
+    ...db.users.find((item) => item.id === friendship.friend_id),
+    friendsSince: friendship.created_at,
+  }));
+  const visibleOwners = new Set([user.id, ...friends.map((friend) => friend.id)]);
+  const projects = db.projects.filter((project) => visibleOwners.has(project.user_id)).map((project) => {
     const image = db.images.find((item) => item.id === project.source_id);
     return {
       id: project.id,
+      ownerId: project.user_id,
       currentVersionId: project.version_id,
+      likeCount: project.likes,
+      likedByMe: project.likedByMe ?? false,
       image,
       storage: db.storages.find((item) => item.id === image.storage_id),
       versions: db.versions.filter((version) => version.project_id === project.id),
@@ -54,12 +63,11 @@ function editorState() {
   return {
     user,
     projects,
-    usedBytes: db.images.reduce((total, image) => total + image.size, 0),
+    usedBytes: projects.reduce((total, project) => (
+      project.ownerId === user.id ? total + project.image.size : total
+    ), 0),
     quotaBytes: 50_000_000,
-    friends: db.friendships.filter((friendship) => friendship.user_id === user.id).map((friendship) => ({
-      ...db.users.find((item) => item.id === friendship.friend_id),
-      friendsSince: friendship.created_at,
-    })),
+    friends,
   };
 }
 
@@ -75,12 +83,30 @@ export function mockEditor() {
       const route = path.slice(prefix.length);
       if (!route && request.method === 'GET') return sendJson(response, 200, state);
 
-      const match = versionsRoute.exec(route);
+      const like = likeRoute.exec(route);
+      const match = like ?? versionsRoute.exec(route);
       const project = match && state.projects.find((item) => String(item.id) === match[1]);
       if (!project) return sendJson(response, 404, { message: 'Маршрут или проект не найден' });
+
+      if (like) {
+        if (request.method !== 'PUT' && request.method !== 'DELETE') {
+          response.setHeader('Allow', 'PUT, DELETE');
+          return sendJson(response, 405, { message: 'Используйте PUT или DELETE' });
+        }
+        const liked = request.method === 'PUT';
+        if (project.likedByMe !== liked) {
+          project.likeCount += liked ? 1 : -1;
+          project.likedByMe = liked;
+        }
+        return sendJson(response, 200, project);
+      }
+
       if (request.method !== 'POST') {
         response.setHeader('Allow', 'POST');
         return sendJson(response, 405, { message: 'Используйте POST' });
+      }
+      if (project.ownerId !== state.user.id) {
+        return sendJson(response, 403, { message: 'Можно изменять только свои проекты' });
       }
 
       if (match[2]) {

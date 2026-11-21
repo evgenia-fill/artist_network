@@ -39,3 +39,9 @@ export function restoreVersion(projectId, versionId) {
     method: 'POST',
   });
 }
+
+export function setProjectLike(projectId, liked) {
+  return request(`/projects/${encodeURIComponent(projectId)}/like`, {
+    method: liked ? 'PUT' : 'DELETE',
+  });
+}

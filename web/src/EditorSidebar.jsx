@@ -15,11 +15,11 @@ const date = new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC' });
 export function Identity({ user, description = user.description }) {
   return (
     <>
-      <div className="av" aria-hidden="true">{user.name[0]}</div>
-      <div>
-        <div className="user-name">{user.name}</div>
-        <div className="user-description">{description}</div>
-      </div>
+      <span className="av" aria-hidden="true">{user.name[0]}</span>
+      <span>
+        <span className="user-name">{user.name}</span>
+        <span className="user-description">{description}</span>
+      </span>
     </>
   );
 }
@@ -84,24 +84,32 @@ function FileDetails({ image, storage }) {
   );
 }
 
-function Friends({ friends }) {
+function Friends({ friends, activeFriendId, onSelect, busy }) {
   if (!friends.length) return <p>Друзей пока нет</p>;
 
   return friends.map((friend) => (
-    <div className="fr" key={friend.id}>
+    <button
+      className="fr"
+      key={friend.id}
+      aria-pressed={activeFriendId === friend.id}
+      disabled={busy}
+      onClick={() => onSelect(friend)}
+    >
       <Identity
         user={friend}
         description={`${friend.description} · с ${date.format(new Date(friend.friendsSince))}`}
       />
-    </div>
+    </button>
   ));
 }
 
-export function EditorSidebar({ project, friends, operations, onAdjust, onRestore, tab, onTabChange, busy, error }) {
+export function EditorSidebar({
+  project, friends, activeFriendId, onFriendSelect, operations, onAdjust, onRestore, tab, onTabChange, busy, error,
+}) {
   return (
     <aside className="right" aria-label="Параметры редактора">
       <div className="tabs" role="group" aria-label="Разделы редактора">
-        {tabs.map(([id, label]) => (
+        {tabs.filter(([id]) => !activeFriendId || id === 'friends').map(([id, label]) => (
           <button
             key={id}
             className={id === tab ? 'on' : undefined}
@@ -113,7 +121,9 @@ export function EditorSidebar({ project, friends, operations, onAdjust, onRestor
         ))}
       </div>
       {error && <p className="error" role="alert">{error}</p>}
-      {tab === 'friends' && <Friends friends={friends} />}
+      {tab === 'friends' && (
+        <Friends friends={friends} activeFriendId={activeFriendId} onSelect={onFriendSelect} busy={busy} />
+      )}
       {!project && tab !== 'friends' && <p>Сначала выберите проект</p>}
       {project && tab === 'adjustments' && <Adjustments operations={operations} onAdjust={onAdjust} busy={busy} />}
       {project && tab === 'versions' && <Versions project={project} onRestore={onRestore} busy={busy} />}

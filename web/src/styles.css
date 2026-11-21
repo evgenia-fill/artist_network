@@ -149,6 +149,7 @@ header {
   place-items: center;
   font-weight: 600;
   font-size: 12px;
+  flex: none;
 }
 
 .btn {
@@ -163,6 +164,20 @@ header {
   border-color: var(--accent);
   color: #fff;
   font-weight: 500;
+}
+
+.like[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.like[aria-pressed="true"] span:first-child,
+.proj .liked {
+  color: var(--accent);
+}
+
+.project-owner {
+  display: flex;
+  flex-direction: column;
 }
 
 aside {
@@ -330,8 +345,21 @@ input[type=range] {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
+  width: 100%;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+
+.fr:hover,
+.fr[aria-pressed="true"] {
+  background: var(--chip);
+}
+
+.fr[aria-pressed="true"] {
+  border-color: var(--accent);
 }
 
 .kv {
@@ -403,6 +431,11 @@ button:disabled {
 
 .user-name {
   font-weight: 500;
+}
+
+.user-name,
+.user-description {
+  display: block;
 }
 
 .user-description,.ver time {
