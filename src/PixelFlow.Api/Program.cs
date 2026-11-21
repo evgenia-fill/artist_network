@@ -1,3 +1,4 @@
+using MassTransit;
 using PixelFlow.Api.Middleware;
 using PixelFlow.Api.Realtime;
 using PixelFlow.Application.Abstractions;
@@ -11,6 +12,19 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IImageChangeNotifier, SignalRImageChangeNotifier>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMq:Host"], "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMq:Username"]!);
+            h.Password(builder.Configuration["RabbitMq:Password"]!);
+        });
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 var app = builder.Build();
 

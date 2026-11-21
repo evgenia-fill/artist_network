@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PixelFlow.Application.UseCases.Images;
+using PixelFlow.Application.UseCases.Jobs;
 
 namespace PixelFlow.Application;
 
@@ -15,6 +16,8 @@ public static class DependencyInjection
         services.AddScoped<UploadImageHandler>();
         services.AddScoped<GetImageFileHandler>();
         services.AddScoped<ApplyImageTemplateHandler>();
+        services.AddScoped<CreateJobHandler>();
+        services.AddScoped<GetJobHandler>();
         
         return services;
     }

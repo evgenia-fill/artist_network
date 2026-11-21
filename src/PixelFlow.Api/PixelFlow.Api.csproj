@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.*" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.*">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PixelFlow.Application\PixelFlow.Application.csproj" />
     <ProjectReference Include="..\PixelFlow.Infrastructure\PixelFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\PixelFlow.Contracts\PixelFlow.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
