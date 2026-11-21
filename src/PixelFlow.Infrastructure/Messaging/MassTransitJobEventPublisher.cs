@@ -10,4 +10,10 @@ public sealed class MassTransitJobEventPublisher(IPublishEndpoint bus) : IJobEve
     public Task PublishCreatedAsync(Job job, CancellationToken ct = default) =>
         bus.Publish(new JobCreated(
             job.Id, job.ImageId, job.UserId, job.Operation, job.Parameters, job.CreatedAt), ct);
+
+    public Task PublishCompletedAsync(Job job, Guid versionId, CancellationToken ct = default) =>
+        bus.Publish(new JobCompleted(job.Id, job.ImageId, job.UserId, versionId), ct);
+
+    public Task PublishFailedAsync(Job job, string error, CancellationToken ct = default) =>
+        bus.Publish(new JobFailed(job.Id, job.ImageId, job.UserId, error), ct);
 }

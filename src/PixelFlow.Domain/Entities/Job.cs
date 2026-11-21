@@ -28,4 +28,15 @@ public class Job
         Operation = operation;
         Parameters = parameters;
     }
+    
+    public void Complete(Guid resultVersionId)
+    {
+        Status = JobStatus.Completed;
+        Progress = 100;
+        ResultVersionId = resultVersionId;
+        Error = null;
+        LeaseOwner = null;
+        LeaseUntil = null;
+        LastUpdated = DateTimeOffset.UtcNow;
+    }
 }

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PixelFlow.Application\PixelFlow.Application.csproj" />
+    <ProjectReference Include="..\PixelFlow.Infrastructure\PixelFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\PixelFlow.Contracts\PixelFlow.Contracts.csproj" />
+    <ProjectReference Include="..\PixelFlow.Api\PixelFlow.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.*" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RollForward>Major</RollForward>
+    <UserSecretsId>296738d4-974b-48fd-9157-92c7fd4ac263</UserSecretsId>
+  </PropertyGroup>
+
+</Project>
