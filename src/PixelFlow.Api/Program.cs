@@ -15,6 +15,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddMassTransit(x =>
 {
+    x.SetKebabCaseEndpointNameFormatter();
+    x.AddConsumer<JobCompletedConsumer>();
+    x.AddConsumer<JobFailedConsumer>();
+
     x.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host(builder.Configuration["RabbitMq:Host"], "/", h =>

@@ -21,7 +21,6 @@
     <ProjectReference Include="..\PixelFlow.Application\PixelFlow.Application.csproj" />
     <ProjectReference Include="..\PixelFlow.Infrastructure\PixelFlow.Infrastructure.csproj" />
     <ProjectReference Include="..\PixelFlow.Contracts\PixelFlow.Contracts.csproj" />
-    <ProjectReference Include="..\PixelFlow.Worker\PixelFlow.Worker.csproj" />
   </ItemGroup>
 
 </Project>
