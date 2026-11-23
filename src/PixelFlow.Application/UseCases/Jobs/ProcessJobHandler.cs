@@ -5,20 +5,17 @@ using PixelFlow.Application.Models;
 
 namespace PixelFlow.Application.UseCases.Jobs;
 
-public enum JobProcessingResult { Skipped, Completed, Failed }
-
 public sealed class ProcessJobHandler(
     IJobRepository jobs,
     IImageRepository images,
     IFileStorage storage,
     IImageProcessor processor,
-    IJobEventPublisher events)
+    IJobEventPublisher events,
+    JobProcessingOptions options)
 {
-    private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(2);
-
     public async Task<JobProcessingResult> HandleAsync(Guid jobId, string workerId, CancellationToken ct = default)
     {
-        if (!await jobs.TryAcquireAsync(jobId, workerId, LeaseDuration, ct))
+        if (!await jobs.TryAcquireAsync(jobId, workerId, TimeSpan.FromSeconds(options.LeaseSeconds), options.MaxAttempts, ct))
             return JobProcessingResult.Skipped;
 
         var job = await jobs.GetByIdAsync(jobId, ct)
@@ -45,9 +42,20 @@ public sealed class ProcessJobHandler(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            await jobs.MarkFailedAsync(jobId, ex.Message, ct);
-            await events.PublishFailedAsync(job, ex.Message, ct);
-            return JobProcessingResult.Failed;
+            var permanent = ex is ValidationException or NotFoundException;
+            var retryAt = DateTimeOffset.UtcNow.Add(options.RetryDelay(job.Attempts));
+            var outcome = await jobs.ResolveFailureAsync(jobId, workerId, ex.Message,
+                options.MaxAttempts, retryAt, permanent, ct);
+
+            if (outcome == JobFailureOutcome.Failed)
+            {
+                await events.PublishFailedAsync(job, ex.Message, ct);
+                return JobProcessingResult.Failed;
+            }
+
+            return outcome == JobFailureOutcome.RetryScheduled
+                ? JobProcessingResult.RetryScheduled
+                : JobProcessingResult.Skipped;
         }
 
         await events.PublishCompletedAsync(job, versionId, ct);

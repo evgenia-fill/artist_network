@@ -1,12 +1,19 @@
 using MassTransit;
 using PixelFlow.Application.UseCases.Jobs;
+using PixelFlow.Application.Models;
 using PixelFlow.Infrastructure;
 using PixelFlow.Worker;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
+var processingOptions = builder.Configuration.GetSection("JobProcessing")
+    .Get<JobProcessingOptions>() ?? new JobProcessingOptions();
+processingOptions.Validate();
+builder.Services.AddSingleton(processingOptions);
 builder.Services.AddScoped<ProcessJobHandler>();
+builder.Services.AddScoped<RecoverJobsHandler>();
+builder.Services.AddHostedService<JobRecoveryService>();
 
 builder.Services.AddMassTransit(x =>
 {

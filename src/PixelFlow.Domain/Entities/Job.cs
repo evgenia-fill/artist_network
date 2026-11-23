@@ -1,7 +1,5 @@
 namespace PixelFlow.Domain.Entities;
 
-public enum JobStatus { Pending, Processing, Completed, Failed }
-
 public class Job
 {
     public Guid Id { get; private set; } = Guid.NewGuid();
@@ -16,6 +14,7 @@ public class Job
     public Guid? ResultVersionId { get; private set; }
     public string? LeaseOwner { get; private set; }
     public DateTimeOffset? LeaseUntil { get; private set; }
+    public DateTimeOffset? NextAttemptAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset LastUpdated { get; private set; } = DateTimeOffset.UtcNow;
 
@@ -37,6 +36,7 @@ public class Job
         Error = null;
         LeaseOwner = null;
         LeaseUntil = null;
+        NextAttemptAt = null;
         LastUpdated = DateTimeOffset.UtcNow;
     }
 }
