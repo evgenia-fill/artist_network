@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
-using PixelFlow.Api.Auth;
 using PixelFlow.Application.Abstractions;
+using System.Security.Claims;
 
 namespace PixelFlow.Api.Realtime;
 
@@ -8,7 +8,11 @@ public sealed class ImageUpdatesHub(IImageRepository images) : Hub
 {
     public async Task Subscribe(Guid imageId)
     {
-        var userId = DemoUserId.Resolve(Context.GetHttpContext()?.Request.Headers);
+        var userIdText = Context.User?
+            .FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdText, out var userId))
+            throw new HubException("Не авторизован");
         var image = await images.GetByIdAsync(imageId, Context.ConnectionAborted);
         if (image is null || image.OwnerId != userId)
             throw new HubException("Изображение не найдено");

@@ -1,15 +1,26 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PixelFlow.Api.Auth;
 using PixelFlow.Application.Models;
 using PixelFlow.Application.UseCases.Jobs;
 
-namespace PixelFlow.Api.Controllers;
-
-[ApiController]
-[Route("api/jobs")]
+[Authorize]
 public sealed class JobsController(GetJobHandler getJob) : ControllerBase
 {
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<JobDto>> Get(Guid id, CancellationToken ct) =>
-        Ok(await getJob.HandleAsync(new GetJobQuery(DemoUserId.Resolve(Request.Headers), id), ct));
+    public async Task<ActionResult<JobDto>> Get(
+        Guid id,
+        CancellationToken ct)
+    {
+        var userId = Guid.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!
+        );
+
+        var result = await getJob.HandleAsync(
+            new GetJobQuery(id, userId),
+            ct
+        );
+
+        return Ok(result);
+    }
 }

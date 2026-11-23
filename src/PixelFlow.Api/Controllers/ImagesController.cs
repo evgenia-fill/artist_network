@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
-using PixelFlow.Api.Auth;
 using PixelFlow.Api.Contracts;
 using PixelFlow.Application.Exceptions;
 using PixelFlow.Application.Models;
 using PixelFlow.Application.UseCases.Images;
 using PixelFlow.Application.UseCases.Jobs;
-using PixelFlow.Application.UseCases.Jobs;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PixelFlow.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/images")]
 public sealed class ImagesController(
     UploadImageHandler upload,
@@ -22,8 +23,9 @@ public sealed class ImagesController(
     ApplyImageTemplateHandler applyTemplate,
     CreateJobHandler createJob) : ControllerBase
 {
-    private Guid CurrentUserId => DemoUserId.Resolve(Request.Headers);
-
+    private Guid CurrentUserId =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload(IFormFile file, CancellationToken ct)
