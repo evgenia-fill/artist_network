@@ -73,3 +73,24 @@ Content-Type: application/json
     { "type": "flip", "axis": "horizontal" }
   ]
 }
+
+### 11. Создать задачу (ожидаем 202 и Status: Pending)
+POST {{host}}/api/images/{{imageId}}/jobs
+Content-Type: application/json
+
+{ "steps": [ { "type": "rotate", "degrees": 90 }, { "type": "flip", "axis": "horizontal" } ] }
+
+> {% client.global.set("jobId", response.body.id); %}
+
+### 12. Статус задачи
+GET {{host}}/api/jobs/{{jobId}}
+
+### 13. Чужая задача (ожидаем 404)
+GET {{host}}/api/jobs/{{jobId}}
+X-User-Id: 22222222-2222-2222-2222-222222222222
+
+### 14. Пустой список шагов (ожидаем 400)
+POST {{host}}/api/images/{{imageId}}/jobs
+Content-Type: application/json
+
+{ "steps": [] }

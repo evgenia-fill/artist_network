@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PixelFlow.Application.Abstractions;
 using PixelFlow.Infrastructure.Imaging;
+using PixelFlow.Infrastructure.Messaging;
 using PixelFlow.Infrastructure.Persistence;
 using PixelFlow.Infrastructure.Storage;
 
@@ -14,7 +16,12 @@ public static class DependencyInjection
     {
         services.AddSingleton<IImageProcessor, ImageSharpProcessor>();
         services.AddSingleton<IFileStorage>(new LocalFileStorage(configuration["Storage:Path"] ?? "uploads"));
-        services.AddSingleton<IImageRepository, InMemoryImageRepository>();
+        services.AddDbContext<AppDbContext>(o => o
+            .UseNpgsql(configuration.GetConnectionString("Default"))
+            .UseSnakeCaseNamingConvention());
+        services.AddScoped<IImageRepository, ImageRepository>();
+        services.AddScoped<IJobRepository, JobRepository>();
+        services.AddScoped<IJobEventPublisher, MassTransitJobEventPublisher>();
         return services;
     }
 }

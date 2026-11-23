@@ -2,11 +2,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PixelFlow.Application\PixelFlow.Application.csproj" />
+    <ProjectReference Include="..\PixelFlow.Contracts\PixelFlow.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" Version="9.*" />
+    <PackageReference Include="MassTransit.Abstractions" Version="8.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.21" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.*" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.*" />
     <PackageReference Include="SixLabors.ImageSharp" Version="4.1.3" />
   </ItemGroup>
 
