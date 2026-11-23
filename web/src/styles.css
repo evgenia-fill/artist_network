@@ -198,6 +198,16 @@ h3 {
   font-weight: 600;
 }
 
+.upload {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.upload small {
+  color: var(--mute);
+}
+
 .proj {
   display: flex;
   gap: 10px;

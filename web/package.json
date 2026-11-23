@@ -7,11 +7,11 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "vite --mode mock",
+    "dev": "vite",
     "dev:mock": "vite --mode mock",
     "dev:api": "vite --mode api",
     "build": "vite build",
-    "preview:mock": "vite preview --mode mock"
+    "preview:mock": "vite build --mode mock --outDir dist/mock && vite preview --mode mock --outDir dist/mock"
   },
   "dependencies": {
     "react": "^19.2.7",

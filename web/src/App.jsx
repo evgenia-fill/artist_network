@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EditorSidebar, Identity } from './EditorSidebar.jsx';
-import { loadEditor, restoreVersion, saveVersion, setProjectLike } from './editorApi.js';
-import { changedOperations, defaults, imageFilter } from './operations.js';
+import { loadEditor, mockMode, resetImage, restoreVersion, saveVersion, setProjectLike, uploadImage } from './editorApi.js';
+import { defaults, imageFilter } from './operations.js';
 
 function megabytes(bytes) {
   return `${(bytes / 1_000_000).toFixed(1)} МБ`;
@@ -27,11 +27,11 @@ function Header({ user, usedBytes, quotaBytes, onReturn, busy }) {
     <header>
       <div className="logo"><i aria-hidden="true" />Лаборатория</div>
       <div className="sp" />
-      <div className="store">
+      {quotaBytes != null && <div className="store">
         <div>{user.storage_link}</div>
         <div>{megabytes(usedBytes)} из {megabytes(quotaBytes)}</div>
         <progress className="bar" value={usedBytes} max={quotaBytes} aria-label="Заполненность хранилища" />
-      </div>
+      </div>}
       <div className="me"><Identity user={user} /></div>
       {onReturn && (
         <button className="btn" disabled={busy} onClick={onReturn}>Вернуться к своим проектам</button>
@@ -41,12 +41,32 @@ function Header({ user, usedBytes, quotaBytes, onReturn, busy }) {
   );
 }
 
-function ProjectList({ owner, projects, projectId, onSelect, busy }) {
+function ProjectList({ owner, projects, projectId, onSelect, onUpload, busy }) {
   const title = owner ? `Проекты · ${owner.name}` : 'Мои проекты';
+  const fileInput = useRef(null);
 
   return (
     <aside aria-label={title}>
       <h3>{title}</h3>
+      {onUpload && (
+        <div className="upload">
+          <button className="btn" disabled={busy} onClick={() => fileInput.current.click()} aria-describedby="upload-limit">
+            Загрузить изображение
+          </button>
+          <small id="upload-limit">JPEG, PNG, WebP · до 10 МиБ</small>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            hidden
+            onChange={(event) => {
+              const [file] = event.target.files;
+              event.target.value = '';
+              if (file) onUpload(file);
+            }}
+          />
+        </div>
+      )}
       {projects.length === 0 && <p>Проектов пока нет</p>}
       {projects.map(({ id, image, versions, likeCount, likedByMe }) => (
         <button
@@ -58,11 +78,11 @@ function ProjectList({ owner, projects, projectId, onSelect, busy }) {
         >
           <img src={image.image_link} alt="" />
           <span>
-            Проект #{id}
+            {mockMode ? `Проект #${id}` : `Изображение ${id.slice(0, 8)}`}
             <small>{versions.length} верс. · {megabytes(image.size)}</small>
-            <small className={likedByMe ? 'liked' : undefined}>
+            {likeCount != null && <small className={likedByMe ? 'liked' : undefined}>
               <span aria-hidden="true">{likedByMe ? '♥' : '♡'} </span>Лайки: {likeCount}
-            </small>
+            </small>}
           </span>
         </button>
       ))}
@@ -72,7 +92,9 @@ function ProjectList({ owner, projects, projectId, onSelect, busy }) {
 
 function Workspace({ project, owner, version, operations, setOperations, onSave, onReset, onLike, busy }) {
   if (!project) {
-    return <main className="page-status">{owner ? 'У друга пока нет проектов' : 'Выберите проект, чтобы открыть редактор'}</main>;
+    return <main className="page-status">{mockMode
+      ? (owner ? 'У друга пока нет проектов' : 'Выберите проект, чтобы открыть редактор')
+      : 'Загрузите изображение, чтобы открыть редактор'}</main>;
   }
 
   const { image } = project;
@@ -107,10 +129,14 @@ function Workspace({ project, owner, version, operations, setOperations, onSave,
           </>
         )}
         <span className="sp" />
-        <button className="btn like" disabled={busy} onClick={onLike} aria-pressed={project.likedByMe}>
+        {onLike && <button className="btn like" disabled={busy} onClick={onLike} aria-pressed={project.likedByMe}>
           <span aria-hidden="true">{project.likedByMe ? '♥' : '♡'}</span> Лайк <span>{project.likeCount}</span>
-        </button>
-        {!owner && <button className="btn pri" disabled={busy} onClick={onSave}>Сохранить версию</button>}
+        </button>}
+        {!owner && (
+          <button className="btn pri" disabled={busy || (!mockMode && rotate % 360 === 0 && !flipX)} onClick={onSave}>
+            Сохранить версию
+          </button>
+        )}
       </div>
       <div className="stage">
         <img src={image.image_link} alt={owner ? `Изображение проекта #${project.id}` : 'Редактируемое изображение'} style={style} />
@@ -130,7 +156,7 @@ function Editor({ initialData }) {
   const [ownProjectId, setOwnProjectId] = useState(firstProject?.id);
   const [operations, setOperations] = useState(() => firstProject ? currentOperations(firstProject) : defaults);
   const [friendView, setFriendView] = useState(null);
-  const [tab, setTab] = useState('adjustments');
+  const [tab, setTab] = useState(mockMode ? 'adjustments' : 'versions');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(null);
@@ -158,8 +184,6 @@ function Editor({ initialData }) {
 
   function openFriend(friend) {
     if (owner?.id === friend.id) return;
-    // TODO(API): если список проектов друга будет отдельным эндпоинтом, добавить запрос
-    // в editorApi.js и вызвать его здесь по friend.id перед выбором первого проекта.
     const firstFriendProject = data.projects.find((item) => item.ownerId === friend.id);
     setFriendView({ friend, projectId: firstFriendProject?.id, tab: 'friends' });
     setError('');
@@ -171,6 +195,7 @@ function Editor({ initialData }) {
   }
 
   function reset() {
+    if (!mockMode) return updateVersion(() => resetImage(project), 'Открыта версия');
     setOperations(defaults);
     setNotice({ text: 'Правки сброшены' });
   }
@@ -182,7 +207,9 @@ function Editor({ initialData }) {
       const updated = await action();
       setData((previous) => ({
         ...previous,
-        projects: previous.projects.map((item) => item.id === updated.id ? updated : item),
+        projects: previous.projects.some((item) => item.id === updated.id)
+          ? previous.projects.map((item) => item.id === updated.id ? updated : item)
+          : [...previous.projects, updated],
       }));
       onUpdated?.(updated);
     } catch (failure) {
@@ -200,6 +227,14 @@ function Editor({ initialData }) {
     });
   }
 
+  function upload(file) {
+    return updateVersion(async () => {
+      const uploaded = await uploadImage(file);
+      setOwnProjectId(uploaded.id);
+      return uploaded;
+    }, 'Загружено изображение');
+  }
+
   return (
     <div className="app">
       <Header
@@ -209,7 +244,14 @@ function Editor({ initialData }) {
         onReturn={owner ? returnToOwnProjects : undefined}
         busy={busy}
       />
-      <ProjectList owner={owner} projects={projects} projectId={projectId} onSelect={openProject} busy={busy} />
+      <ProjectList
+        owner={owner}
+        projects={projects}
+        projectId={projectId}
+        onSelect={openProject}
+        onUpload={mockMode ? undefined : upload}
+        busy={busy}
+      />
       <Workspace
         project={project}
         owner={owner}
@@ -218,13 +260,14 @@ function Editor({ initialData }) {
         setOperations={setOperations}
         busy={busy}
         onReset={reset}
-        onLike={() => updateProject(() => setProjectLike(projectId, !project.likedByMe))}
+        onLike={mockMode ? () => updateProject(() => setProjectLike(projectId, !project.likedByMe)) : undefined}
         onSave={() => updateVersion(
-          () => saveVersion(projectId, changedOperations(operations)),
+          () => saveVersion(project, operations),
           'Сохранена версия',
         )}
       />
       <EditorSidebar
+        mockMode={mockMode}
         project={project}
         activeVersionId={version?.id}
         friends={data.friends}
@@ -234,7 +277,7 @@ function Editor({ initialData }) {
         onAdjust={(key, value) => setOperations((previous) => ({ ...previous, [key]: value }))}
         onVersionSelect={friendView
           ? (id) => setFriendView({ ...friendView, versionId: id })
-          : (id) => updateVersion(() => restoreVersion(projectId, id), 'Открыта версия')}
+          : (id) => updateVersion(() => restoreVersion(project, id), 'Открыта версия')}
         tab={friendView?.tab ?? tab}
         onTabChange={friendView ? (id) => setFriendView({ ...friendView, tab: id }) : setTab}
         busy={busy}

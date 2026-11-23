@@ -11,6 +11,12 @@ const dateTime = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
 });
 const date = new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC' });
+const operationNames = {
+  original: 'Оригинал',
+  rotate: 'Поворот',
+  flip: 'Отражение',
+  template: 'Шаблон правок',
+};
 
 export function Identity({ user, description = user.description }) {
   return (
@@ -63,8 +69,10 @@ function Versions({ project, activeVersionId, onSelect, busy }) {
       >
         <b>v{version.number}</b>{' '}
         <time dateTime={version.created_at}>{dateTime.format(new Date(version.created_at))}</time>
-        <code>{Object.keys(operations).length ? JSON.stringify(operations) : 'без изменений'}</code>
-        <code>result_file_id: {version.result_file_id}</code>
+        <code>{version.operation
+          ? (operationNames[version.operation] ?? version.operation)
+          : (Object.keys(operations).length ? JSON.stringify(operations) : 'без изменений')}</code>
+        {version.result_file_id && <code>result_file_id: {version.result_file_id}</code>}
       </button>
     );
   });
@@ -76,10 +84,16 @@ function FileDetails({ image, storage }) {
       <dt>image.id</dt><dd>{image.id}</dd>
       <dt>size</dt><dd>{image.size} байт</dd>
       <dt>width × height</dt><dd>{image.width} × {image.height}</dd>
-      <dt>project_id</dt><dd>{image.project_id}</dd>
-      <dt>storage.id</dt><dd>{storage.id}</dd>
-      <dt>storage.link</dt><dd>{storage.link}</dd>
-      <dt>создано</dt><dd>{dateTime.format(new Date(storage.created_at))}</dd>
+      {storage ? (
+        <>
+          <dt>project_id</dt><dd>{image.project_id}</dd>
+          <dt>storage.id</dt><dd>{storage.id}</dd>
+          <dt>storage.link</dt><dd>{storage.link}</dd>
+          <dt>создано</dt><dd>{dateTime.format(new Date(storage.created_at))}</dd>
+        </>
+      ) : (
+        <><dt>Файл</dt><dd><a href={image.image_link} download>Скачать</a></dd></>
+      )}
     </dl>
   );
 }
@@ -105,12 +119,15 @@ function Friends({ friends, activeFriendId, onSelect, busy }) {
 
 export function EditorSidebar({
   project, activeVersionId, friends, activeFriendId, onFriendSelect, operations, onAdjust, onVersionSelect,
-  tab, onTabChange, busy, error,
+  tab, onTabChange, busy, error, mockMode,
 }) {
   return (
     <aside className="right" aria-label="Параметры редактора">
       <div className="tabs" role="group" aria-label="Разделы редактора">
-        {tabs.filter(([id]) => !activeFriendId || id !== 'adjustments').map(([id, label]) => (
+        {tabs.filter(([id]) => {
+          if (!mockMode) return id === 'versions' || id === 'file';
+          return !activeFriendId || id !== 'adjustments';
+        }).map(([id, label]) => (
           <button
             key={id}
             className={id === tab ? 'on' : undefined}
