@@ -8,14 +8,13 @@ public sealed class JobCreatedConsumer(
     ProcessJobHandler handler,
     ILogger<JobCreatedConsumer> logger) : IConsumer<JobCreated>
 {
-    private static readonly string WorkerId = $"{Environment.MachineName}-{Environment.ProcessId}";
-
     public async Task Consume(ConsumeContext<JobCreated> context)
     {
         var jobId = context.Message.JobId;
         logger.LogInformation("Получена задача {JobId}", jobId);
 
-        var result = await handler.HandleAsync(jobId, WorkerId, context.CancellationToken);
+        var leaseOwner = $"{Environment.ProcessId}-{Guid.NewGuid():N}";
+        var result = await handler.HandleAsync(jobId, leaseOwner, context.CancellationToken);
 
         logger.LogInformation("Задача {JobId}: {Result}", jobId, result);
     }
