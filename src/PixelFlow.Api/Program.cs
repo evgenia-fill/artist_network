@@ -74,6 +74,9 @@ builder.Services.AddMassTransit(x =>
 
 var app = builder.Build();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.MapControllers();
 app.MapHub<ImageUpdatesHub>("/hubs/images");
