@@ -1,320 +1,659 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { EditorSidebar, Identity } from './EditorSidebar.jsx';
-import { loadEditor, mockMode, resetImage, restoreVersion, saveVersion, setProjectLike, uploadImage } from './editorApi.js';
+import {
+    loadEditor,
+    mockMode,
+    resetImage,
+    restoreVersion,
+    saveVersion,
+    setProjectLike,
+    uploadImage,
+} from './editorApi.js';
 import { defaults, imageFilter } from './operations.js';
+import AuthScreen from './AuthScreen.jsx';
+import { getToken, getAuthUser, clearSession } from './auth.js';
+import AuthenticatedImage from './AuthenticatedImage.jsx';
 
 function megabytes(bytes) {
-  return `${(bytes / 1_000_000).toFixed(1)} МБ`;
+    return `${(bytes / 1_000_000).toFixed(1)} МБ`;
 }
 
 function currentVersion(project, versionId = project.currentVersionId) {
-  return project.versions.find((version) => version.id === versionId);
+    return project.versions.find((version) => version.id === versionId);
 }
 
 function currentOperations(project) {
-  return { ...defaults, ...currentVersion(project)?.operations };
+    return { ...defaults, ...currentVersion(project)?.operations };
 }
 
-function Header({ user, usedBytes, quotaBytes, onReturn, busy }) {
-  function toggleTheme() {
-    const { dataset } = document.documentElement;
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const dark = dataset.theme ? dataset.theme === 'dark' : systemDark;
-    dataset.theme = dark ? 'light' : 'dark';
-  }
+function Header({
+                    user,
+                    usedBytes,
+                    quotaBytes,
+                    onReturn,
+                    busy,
+                    onLogout,
+                }) {
+    function toggleTheme() {
+        const { dataset } = document.documentElement;
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const dark = dataset.theme ? dataset.theme === 'dark' : systemDark;
+        dataset.theme = dark ? 'light' : 'dark';
+    }
 
-  return (
-    <header>
-      <div className="logo"><i aria-hidden="true" />Лаборатория</div>
-      <div className="sp" />
-      {quotaBytes != null && <div className="store">
-        <div>{user.storage_link}</div>
-        <div>{megabytes(usedBytes)} из {megabytes(quotaBytes)}</div>
-        <progress className="bar" value={usedBytes} max={quotaBytes} aria-label="Заполненность хранилища" />
-      </div>}
-      <div className="me"><Identity user={user} /></div>
-      {onReturn && (
-        <button className="btn" disabled={busy} onClick={onReturn}>Вернуться к своим проектам</button>
-      )}
-      <button className="btn" onClick={toggleTheme} aria-label="Сменить тему">Тема</button>
-    </header>
-  );
+    return (
+        <header>
+            <div className="logo">
+                <i aria-hidden="true" />
+                Лаборатория
+            </div>
+
+            <div className="sp" />
+
+            {quotaBytes != null && (
+                <div className="store">
+                    <div>{user.storage_link}</div>
+                    <div>
+                        {megabytes(usedBytes)} из {megabytes(quotaBytes)}
+                    </div>
+                    <progress
+                        className="bar"
+                        value={usedBytes}
+                        max={quotaBytes}
+                        aria-label="Заполненность хранилища"
+                    />
+                </div>
+            )}
+
+            <div className="me">
+                <Identity user={user} />
+            </div>
+
+            {onReturn && (
+                <button
+                    className="btn"
+                    disabled={busy}
+                    onClick={onReturn}
+                >
+                    Вернуться к своим проектам
+                </button>
+            )}
+
+            <button
+                className="btn"
+                onClick={toggleTheme}
+                aria-label="Сменить тему"
+            >
+                Тема
+            </button>
+
+            <button
+                className="btn"
+                disabled={busy}
+                onClick={onLogout}
+            >
+                Выйти
+            </button>
+        </header>
+    );
 }
 
-function ProjectList({ owner, projects, projectId, onSelect, onUpload, busy }) {
-  const title = owner ? `Проекты · ${owner.name}` : 'Мои проекты';
-  const fileInput = useRef(null);
+function ProjectList({
+                         owner,
+                         projects,
+                         projectId,
+                         onSelect,
+                         onUpload,
+                         busy,
+                     }) {
+    const title = owner
+        ? `Проекты · ${owner.name || owner.login || 'Пользователь'}`
+        : 'Мои проекты';
 
-  return (
-    <aside aria-label={title}>
-      <h3>{title}</h3>
-      {onUpload && (
-        <div className="upload">
-          <button className="btn" disabled={busy} onClick={() => fileInput.current.click()} aria-describedby="upload-limit">
-            Загрузить изображение
-          </button>
-          <small id="upload-limit">JPEG, PNG, WebP · до 10 МиБ</small>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            hidden
-            onChange={(event) => {
-              const [file] = event.target.files;
-              event.target.value = '';
-              if (file) onUpload(file);
-            }}
-          />
-        </div>
-      )}
-      {projects.length === 0 && <p>Проектов пока нет</p>}
-      {projects.map(({ id, image, versions, likeCount, likedByMe }) => (
-        <button
-          key={id}
-          className={id === projectId ? 'proj on' : 'proj'}
-          aria-pressed={id === projectId}
-          disabled={busy}
-          onClick={() => onSelect(id)}
-        >
-          <img src={image.image_link} alt="" />
-          <span>
+    const fileInput = useRef(null);
+
+    return (
+        <aside aria-label={title}>
+            <h3>{title}</h3>
+
+            {onUpload && (
+                <div className="upload">
+                    <button
+                        className="btn"
+                        disabled={busy}
+                        onClick={() => fileInput.current?.click()}
+                        aria-describedby="upload-limit"
+                    >
+                        Загрузить изображение
+                    </button>
+
+                    <small id="upload-limit">
+                        JPEG, PNG, WebP · до 10 МиБ
+                    </small>
+
+                    <input
+                        ref={fileInput}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        hidden
+                        onChange={(event) => {
+                            const [file] = event.target.files;
+                            event.target.value = '';
+                            if (file) onUpload(file);
+                        }}
+                    />
+                </div>
+            )}
+
+            {projects.length === 0 && <p>Проектов пока нет</p>}
+
+            {projects.map(({ id, image, versions, likeCount, likedByMe }) => (
+                <button
+                    key={id}
+                    className={id === projectId ? 'proj on' : 'proj'}
+                    aria-pressed={id === projectId}
+                    disabled={busy}
+                    onClick={() => onSelect(id)}
+                >
+                    <AuthenticatedImage
+                        src={image.image_link}
+                        alt=""
+                    />
+
+                    <span>
             {mockMode ? `Проект #${id}` : `Изображение ${id.slice(0, 8)}`}
-            <small>{versions.length} верс. · {megabytes(image.size)}</small>
-            {likeCount != null && <small className={likedByMe ? 'liked' : undefined}>
-              <span aria-hidden="true">{likedByMe ? '♥' : '♡'} </span>Лайки: {likeCount}
-            </small>}
+
+                        <small>
+              {versions.length} верс. · {megabytes(image.size)}
+            </small>
+
+                        {likeCount != null && (
+                            <small className={likedByMe ? 'liked' : undefined}>
+                <span aria-hidden="true">
+                  {likedByMe ? '♥' : '♡'}{' '}
+                </span>
+                                Лайки: {likeCount}
+                            </small>
+                        )}
           </span>
-        </button>
-      ))}
-    </aside>
-  );
+                </button>
+            ))}
+        </aside>
+    );
 }
 
-function Workspace({ project, owner, version, operations, setOperations, onSave, onReset, onLike, busy }) {
-  if (!project) {
-    return <main className="page-status">{mockMode
-      ? (owner ? 'У друга пока нет проектов' : 'Выберите проект, чтобы открыть редактор')
-      : 'Загрузите изображение, чтобы открыть редактор'}</main>;
-  }
+function Workspace({
+                       project,
+                       owner,
+                       version,
+                       operations,
+                       setOperations,
+                       onSave,
+                       onReset,
+                       onLike,
+                       busy,
+                   }) {
+    if (!project) {
+        return (
+            <main className="page-status">
+                {mockMode
+                    ? owner
+                        ? 'У друга пока нет проектов'
+                        : 'Выберите проект, чтобы открыть редактор'
+                    : 'Загрузите изображение, чтобы открыть редактор'}
+            </main>
+        );
+    }
 
-  const { image } = project;
-  const { rotate, flipX } = operations;
-  const quarterTurn = rotate % 180 !== 0;
-  const style = {
-    '--image-width': `${image.width}px`,
-    '--fit-width': quarterTurn ? '100cqh' : '100cqw',
-    '--fit-height': quarterTurn ? '100cqw' : '100cqh',
-    '--image-ratio': image.width / image.height,
-    filter: imageFilter(operations),
-    transform: `rotate(${rotate}deg) scaleX(${flipX ? -1 : 1})`,
-  };
+    const { image } = project;
+    const { rotate, flipX } = operations;
+    const quarterTurn = rotate % 180 !== 0;
 
-  const turn = (degrees) => setOperations((value) => ({ ...value, rotate: value.rotate + degrees }));
-  const flip = () => setOperations((value) => ({ ...value, flipX: !value.flipX }));
+    const style = {
+        '--image-width': `${image.width}px`,
+        '--fit-width': quarterTurn ? '100cqh' : '100cqw',
+        '--fit-height': quarterTurn ? '100cqw' : '100cqh',
+        '--image-ratio': image.width / image.height,
+        filter: imageFilter(operations),
+        transform: `rotate(${rotate}deg) scaleX(${flipX ? -1 : 1})`,
+    };
 
-  return (
-    <main>
-      <div className="tools">
-        {owner ? (
-          <div className="project-owner">
-            <b>Проект #{project.id}</b>
-            <span className="user-description">{owner.name}</span>
-          </div>
-        ) : (
-          <>
-            <button className="btn" disabled={busy} onClick={() => turn(-90)}>Повернуть ⟲</button>
-            <button className="btn" disabled={busy} onClick={() => turn(90)}>Повернуть ⟳</button>
-            <button className="btn" disabled={busy} onClick={flip} aria-pressed={flipX}>Отразить</button>
-            <button className="btn" disabled={busy} onClick={onReset}>Сбросить</button>
-          </>
-        )}
-        <span className="sp" />
-        {onLike && <button className="btn like" disabled={busy} onClick={onLike} aria-pressed={project.likedByMe}>
-          <span aria-hidden="true">{project.likedByMe ? '♥' : '♡'}</span> Лайк <span>{project.likeCount}</span>
-        </button>}
-        {!owner && (
-          <button className="btn pri" disabled={busy || (!mockMode && rotate % 360 === 0 && !flipX)} onClick={onSave}>
-            Сохранить версию
-          </button>
-        )}
-      </div>
-      <div className="stage">
-        <img src={image.image_link} alt={owner ? `Изображение проекта #${project.id}` : 'Редактируемое изображение'} style={style} />
-      </div>
-      <div className="meta">
-        <span>{image.width}×{image.height}</span>
-        <span>{megabytes(image.size)}</span>
-        {version && <span>Версия v{version.number}</span>}
-      </div>
-    </main>
-  );
+    const turn = (degrees) =>
+        setOperations((value) => ({
+            ...value,
+            rotate: value.rotate + degrees,
+        }));
+
+    const flip = () =>
+        setOperations((value) => ({
+            ...value,
+            flipX: !value.flipX,
+        }));
+
+    return (
+        <main>
+            <div className="tools">
+                {owner ? (
+                    <div className="project-owner">
+                        <b>Проект #{project.id}</b>
+                        <span className="user-description">
+              {owner.name || owner.login || 'Пользователь'}
+            </span>
+                    </div>
+                ) : (
+                    <>
+                        <button
+                            className="btn"
+                            disabled={busy}
+                            onClick={() => turn(-90)}
+                        >
+                            Повернуть ⟲
+                        </button>
+
+                        <button
+                            className="btn"
+                            disabled={busy}
+                            onClick={() => turn(90)}
+                        >
+                            Повернуть ⟳
+                        </button>
+
+                        <button
+                            className="btn"
+                            disabled={busy}
+                            onClick={flip}
+                            aria-pressed={flipX}
+                        >
+                            Отразить
+                        </button>
+
+                        <button
+                            className="btn"
+                            disabled={busy}
+                            onClick={onReset}
+                        >
+                            Сбросить
+                        </button>
+                    </>
+                )}
+
+                <span className="sp" />
+
+                {onLike && (
+                    <button
+                        className="btn like"
+                        disabled={busy}
+                        onClick={onLike}
+                        aria-pressed={project.likedByMe}
+                    >
+            <span aria-hidden="true">
+              {project.likedByMe ? '♥' : '♡'}
+            </span>
+                        {' '}Лайк{' '}
+                        <span>{project.likeCount}</span>
+                    </button>
+                )}
+
+                {!owner && (
+                    <button
+                        className="btn pri"
+                        disabled={
+                            busy ||
+                            (!mockMode && rotate % 360 === 0 && !flipX)
+                        }
+                        onClick={onSave}
+                    >
+                        Сохранить версию
+                    </button>
+                )}
+            </div>
+
+            <div className="stage">
+                <AuthenticatedImage
+                    src={image.image_link}
+                    alt={
+                        owner
+                            ? `Изображение проекта #${project.id}`
+                            : 'Редактируемое изображение'
+                    }
+                    style={style}
+                />
+            </div>
+
+            <div className="meta">
+                <span>{image.width}×{image.height}</span>
+                <span>{megabytes(image.size)}</span>
+                {version && <span>Версия v{version.number}</span>}
+            </div>
+        </main>
+    );
 }
 
-function Editor({ initialData }) {
-  const firstProject = initialData.projects.find((item) => item.ownerId === initialData.user.id);
-  const [data, setData] = useState(initialData);
-  const [ownProjectId, setOwnProjectId] = useState(firstProject?.id);
-  const [operations, setOperations] = useState(() => firstProject ? currentOperations(firstProject) : defaults);
-  const [friendView, setFriendView] = useState(null);
-  const [tab, setTab] = useState(mockMode ? 'adjustments' : 'versions');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState(null);
-  const owner = friendView?.friend;
-  const projects = data.projects.filter((item) => item.ownerId === (owner?.id ?? data.user.id));
-  const projectId = friendView ? friendView.projectId : ownProjectId;
-  const project = projects.find((item) => item.id === projectId);
-  const version = project && currentVersion(project, friendView?.versionId);
+function Editor({ initialData, onLogout }) {
+    const firstProject = initialData.projects.find(
+        (item) => item.ownerId === initialData.user.id
+    );
 
-  useEffect(() => {
-    if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(null), 1800);
-    return () => window.clearTimeout(timeout);
-  }, [notice]);
+    const [data, setData] = useState(initialData);
+    const [ownProjectId, setOwnProjectId] = useState(firstProject?.id);
+    const [operations, setOperations] = useState(() =>
+        firstProject ? currentOperations(firstProject) : defaults
+    );
+    const [friendView, setFriendView] = useState(null);
+    const [tab, setTab] = useState(mockMode ? 'adjustments' : 'versions');
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const [notice, setNotice] = useState(null);
 
-  function openProject(id) {
-    if (friendView) {
-      if (id !== friendView.projectId) setFriendView({ ...friendView, projectId: id, versionId: undefined });
-    } else {
-      setOwnProjectId(id);
-      setOperations(currentOperations(projects.find((item) => item.id === id)));
+    const owner = friendView?.friend;
+
+    const projects = data.projects.filter(
+        (item) => item.ownerId === (owner?.id ?? data.user.id)
+    );
+
+    const projectId = friendView
+        ? friendView.projectId
+        : ownProjectId;
+
+    const project = projects.find((item) => item.id === projectId);
+
+    const version = project &&
+        currentVersion(project, friendView?.versionId);
+
+    useEffect(() => {
+        if (!notice) return;
+
+        const timeout = window.setTimeout(() => setNotice(null), 1800);
+
+        return () => window.clearTimeout(timeout);
+    }, [notice]);
+
+    function openProject(id) {
+        if (friendView) {
+            if (id !== friendView.projectId) {
+                setFriendView({
+                    ...friendView,
+                    projectId: id,
+                    versionId: undefined,
+                });
+            }
+        } else {
+            setOwnProjectId(id);
+
+            const selectedProject = projects.find((item) => item.id === id);
+            if (selectedProject) {
+                setOperations(currentOperations(selectedProject));
+            }
+        }
+
+        setError('');
     }
-    setError('');
-  }
 
-  function openFriend(friend) {
-    if (owner?.id === friend.id) return;
-    const firstFriendProject = data.projects.find((item) => item.ownerId === friend.id);
-    setFriendView({ friend, projectId: firstFriendProject?.id, tab: 'friends' });
-    setError('');
-  }
+    function openFriend(friend) {
+        if (owner?.id === friend.id) return;
 
-  function returnToOwnProjects() {
-    setFriendView(null);
-    setError('');
-  }
+        const firstFriendProject = data.projects.find(
+            (item) => item.ownerId === friend.id
+        );
 
-  function reset() {
-    if (!mockMode) return updateVersion(() => resetImage(project), 'Открыта версия');
-    setOperations(defaults);
-    setNotice({ text: 'Правки сброшены' });
-  }
+        setFriendView({
+            friend,
+            projectId: firstFriendProject?.id,
+            tab: 'friends',
+        });
 
-  async function updateProject(action, onUpdated) {
-    setBusy(true);
-    setError('');
-    try {
-      const updated = await action();
-      setData((previous) => ({
-        ...previous,
-        projects: previous.projects.some((item) => item.id === updated.id)
-          ? previous.projects.map((item) => item.id === updated.id ? updated : item)
-          : [...previous.projects, updated],
-      }));
-      onUpdated?.(updated);
-    } catch (failure) {
-      setError(failure.message);
-    } finally {
-      setBusy(false);
+        setError('');
     }
-  }
 
-  function updateVersion(action, message) {
-    return updateProject(action, (updated) => {
-      setOperations(currentOperations(updated));
-      setTab('versions');
-      setNotice({ text: `${message} v${currentVersion(updated).number}` });
-    });
-  }
+    function returnToOwnProjects() {
+        setFriendView(null);
+        setError('');
+    }
 
-  function upload(file) {
-    return updateVersion(async () => {
-      const uploaded = await uploadImage(file);
-      setOwnProjectId(uploaded.id);
-      return uploaded;
-    }, 'Загружено изображение');
-  }
+    function reset() {
+        if (!mockMode) {
+            return updateVersion(
+                () => resetImage(project),
+                'Открыта версия'
+            );
+        }
 
-  return (
-    <div className="app">
-      <Header
-        user={data.user}
-        usedBytes={data.usedBytes}
-        quotaBytes={data.quotaBytes}
-        onReturn={owner ? returnToOwnProjects : undefined}
-        busy={busy}
-      />
-      <ProjectList
-        owner={owner}
-        projects={projects}
-        projectId={projectId}
-        onSelect={openProject}
-        onUpload={mockMode ? undefined : upload}
-        busy={busy}
-      />
-      <Workspace
-        project={project}
-        owner={owner}
-        version={version}
-        operations={owner ? { ...defaults, ...version?.operations } : operations}
-        setOperations={setOperations}
-        busy={busy}
-        onReset={reset}
-        onLike={mockMode ? () => updateProject(() => setProjectLike(projectId, !project.likedByMe)) : undefined}
-        onSave={() => updateVersion(
-          () => saveVersion(project, operations),
-          'Сохранена версия',
-        )}
-      />
-      <EditorSidebar
-        mockMode={mockMode}
-        project={project}
-        activeVersionId={version?.id}
-        friends={data.friends}
-        activeFriendId={owner?.id}
-        onFriendSelect={openFriend}
-        operations={operations}
-        onAdjust={(key, value) => setOperations((previous) => ({ ...previous, [key]: value }))}
-        onVersionSelect={friendView
-          ? (id) => setFriendView({ ...friendView, versionId: id })
-          : (id) => updateVersion(() => restoreVersion(project, id), 'Открыта версия')}
-        tab={friendView?.tab ?? tab}
-        onTabChange={friendView ? (id) => setFriendView({ ...friendView, tab: id }) : setTab}
-        busy={busy}
-        error={error}
-      />
-      <div className={notice ? 'toast show' : 'toast'} role="status">{notice?.text}</div>
-    </div>
-  );
+        setOperations(defaults);
+        setNotice({ text: 'Правки сброшены' });
+    }
+
+    async function updateProject(action, onUpdated) {
+        setBusy(true);
+        setError('');
+
+        try {
+            const updated = await action();
+
+            setData((previous) => ({
+                ...previous,
+                projects: previous.projects.some(
+                    (item) => item.id === updated.id
+                )
+                    ? previous.projects.map(
+                        (item) => item.id === updated.id ? updated : item
+                    )
+                    : [...previous.projects, updated],
+            }));
+
+            onUpdated?.(updated);
+        } catch (failure) {
+            setError(failure.message);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function updateVersion(action, message) {
+        return updateProject(action, (updated) => {
+            setOperations(currentOperations(updated));
+            setTab('versions');
+
+            setNotice({
+                text: `${message} v${currentVersion(updated).number}`,
+            });
+        });
+    }
+
+    function upload(file) {
+        return updateVersion(async () => {
+            const uploaded = await uploadImage(file);
+            setOwnProjectId(uploaded.id);
+            return uploaded;
+        }, 'Загружено изображение');
+    }
+
+    return (
+        <div className="app">
+            <Header
+                user={data.user}
+                usedBytes={data.usedBytes}
+                quotaBytes={data.quotaBytes}
+                onReturn={owner ? returnToOwnProjects : undefined}
+                busy={busy}
+                onLogout={onLogout}
+            />
+
+            <ProjectList
+                owner={owner}
+                projects={projects}
+                projectId={projectId}
+                onSelect={openProject}
+                onUpload={mockMode ? undefined : upload}
+                busy={busy}
+            />
+
+            <Workspace
+                project={project}
+                owner={owner}
+                version={version}
+                operations={
+                    owner
+                        ? { ...defaults, ...version?.operations }
+                        : operations
+                }
+                setOperations={setOperations}
+                busy={busy}
+                onReset={reset}
+                onLike={
+                    mockMode
+                        ? () => updateProject(
+                            () => setProjectLike(projectId, !project.likedByMe)
+                        )
+                        : undefined
+                }
+                onSave={() =>
+                    updateVersion(
+                        () => saveVersion(project, operations),
+                        'Сохранена версия'
+                    )
+                }
+            />
+
+            <EditorSidebar
+                mockMode={mockMode}
+                project={project}
+                activeVersionId={version?.id}
+                friends={data.friends}
+                activeFriendId={owner?.id}
+                onFriendSelect={openFriend}
+                operations={operations}
+                onAdjust={(key, value) =>
+                    setOperations((previous) => ({
+                        ...previous,
+                        [key]: value,
+                    }))
+                }
+                onVersionSelect={
+                    friendView
+                        ? (id) =>
+                            setFriendView({
+                                ...friendView,
+                                versionId: id,
+                            })
+                        : (id) =>
+                            updateVersion(
+                                () => restoreVersion(project, id),
+                                'Открыта версия'
+                            )
+                }
+                tab={friendView?.tab ?? tab}
+                onTabChange={
+                    friendView
+                        ? (id) => setFriendView({ ...friendView, tab: id })
+                        : setTab
+                }
+                busy={busy}
+                error={error}
+            />
+
+            <div
+                className={notice ? 'toast show' : 'toast'}
+                role="status"
+            >
+                {notice?.text}
+            </div>
+        </div>
+    );
 }
 
 export function App() {
-  const [result, setResult] = useState(null);
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadEditor(controller.signal).then(
-      (data) => setResult({ data }),
-      (error) => {
-        if (!controller.signal.aborted) setResult({ error: error.message });
-      },
+    const [user, setUser] = useState(() =>
+        getToken() ? getAuthUser() : null
     );
-    return () => controller.abort();
-  }, [attempt]);
 
-  if (result?.data) return <Editor initialData={result.data} />;
-  if (!result) return <main className="page-status" role="status">Загрузка редактора…</main>;
+    const [result, setResult] = useState(null);
+    const [attempt, setAttempt] = useState(0);
 
-  return (
-    <main className="page-status">
-      <p role="alert">{result.error}</p>
-      <button className="btn" onClick={() => {
+    useEffect(() => {
+        if (!user || !getToken()) {
+            setResult(null);
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
         setResult(null);
-        setAttempt((value) => value + 1);
-      }}>
-        Повторить
-      </button>
-    </main>
-  );
+
+        loadEditor(controller.signal).then(
+            (data) => {
+                if (!controller.signal.aborted) {
+                    setResult({ data });
+                }
+            },
+            (error) => {
+                if (controller.signal.aborted) return;
+
+                if (error.status === 401) {
+                    clearSession();
+                    setUser(null);
+                    setResult(null);
+                    return;
+                }
+
+                setResult({ error: error.message });
+            }
+        );
+
+        return () => controller.abort();
+    }, [user, attempt]);
+
+    function handleAuthenticated(authenticatedUser) {
+        setResult(null);
+        setUser(authenticatedUser);
+    }
+
+    function handleLogout() {
+        clearSession();
+        setResult(null);
+        setUser(null);
+    }
+
+    if (!user || !getToken()) {
+        return (
+            <AuthScreen onAuthenticated={handleAuthenticated} />
+        );
+    }
+
+    if (result?.data) {
+        return (
+            <Editor
+                initialData={result.data}
+                onLogout={handleLogout}
+            />
+        );
+    }
+
+    if (!result) {
+        return (
+            <main className="page-status" role="status">
+                Загрузка редактора…
+            </main>
+        );
+    }
+
+    return (
+        <main className="page-status">
+            <p role="alert">{result.error}</p>
+
+            <button
+                className="btn"
+                onClick={() => {
+                    setResult(null);
+                    setAttempt((value) => value + 1);
+                }}
+            >
+                Повторить
+            </button>
+
+            <button className="btn" onClick={handleLogout}>
+                Выйти
+            </button>
+        </main>
+    );
 }

@@ -1,24 +1,43 @@
 import { changedOperations } from './operations.js';
+import { getToken, getAuthUser } from './auth.js';
 
 export const mockMode = import.meta.env.MODE === 'mock';
 export const maxUploadBytes = 10 * 1024 * 1024;
 
 const imagesPath = '/api/images';
 const storageKey = 'pixelflow.imageIds';
-const user = { id: '11111111-1111-1111-1111-111111111111', name: 'Демо-пользователь' };
+const user = getAuthUser();
 
-async function request(path, options) {
-  const response = await fetch(path, options);
+if (!user) {
+  throw new Error('Необходимо войти в аккаунт');
+}
+
+async function request(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const token = getToken();
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(path, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    const error = new Error('Сессия истекла. Войдите снова.');
+    error.status = 401;
+    throw error;
+  }
+
   if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    const failure = new Error(error?.message ?? error?.title ?? `Запрос завершился с ошибкой (${response.status})`);
-    failure.status = response.status;
-    throw failure;
+    const error = new Error(`Ошибка API: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
-  if (!response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('Ожидался JSON от API редактора. Проверьте конфигурацию сервера.');
-  }
+  if (response.status === 204) return null;
 
   return response.json();
 }

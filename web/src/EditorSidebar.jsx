@@ -21,9 +21,9 @@ const operationNames = {
 export function Identity({ user, description = user.description }) {
   return (
     <>
-      <span className="av" aria-hidden="true">{user.name[0]}</span>
+      <span className="av" aria-hidden="true">{(user?.name || user?.login || 'U')[0].toUpperCase()}</span>
       <span>
-        <span className="user-name">{user.name}</span>
+        <span className="user-name">{user?.name || user?.login || 'User'}</span>
         <span className="user-description">{description}</span>
       </span>
     </>
