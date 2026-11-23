@@ -1,3 +1,4 @@
+
 const TOKEN_KEY = 'pixelflow.auth.token';
 const USER_KEY = 'pixelflow.auth.user';
 
@@ -19,11 +20,15 @@ export function saveSession(session) {
     }
 
     localStorage.setItem(TOKEN_KEY, session.token);
-    localStorage.setItem(USER_KEY, JSON.stringify({
-        id: session.user.id,
-        login: session.user.login,
-        name: session.user.login,
-    }));
+
+    localStorage.setItem(
+        USER_KEY,
+        JSON.stringify({
+            id: session.user.id,
+            login: session.user.login,
+            name: session.user.login,
+        })
+    );
 
     return getAuthUser();
 }
