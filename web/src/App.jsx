@@ -331,10 +331,20 @@ function Workspace({
 }
 
 function Editor({ initialData, onLogout }) {
-    const firstProject = initialData.projects.find(
+    if (!initialData?.user?.id) {
+        return (
+            <main className="page-status">
+                <p>Сервер не вернул данные пользователя.</p>
+                <button className="btn" onClick={onLogout}>
+                    Вернуться ко входу
+                </button>
+            </main>
+        );
+    }
+
+    const firstProject = (initialData.projects || []).find(
         (item) => item.ownerId === initialData.user.id
     );
-
     const [data, setData] = useState(initialData);
     const [ownProjectId, setOwnProjectId] = useState(firstProject?.id);
     const [operations, setOperations] = useState(() =>

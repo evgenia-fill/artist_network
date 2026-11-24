@@ -18,16 +18,23 @@ const operationNames = {
   template: 'Шаблон правок',
 };
 
-export function Identity({ user, description = user.description }) {
-  return (
-    <>
-      <span className="av" aria-hidden="true">{(user?.name || user?.login || 'U')[0].toUpperCase()}</span>
-      <span>
-        <span className="user-name">{user?.name || user?.login || 'User'}</span>
-        <span className="user-description">{description}</span>
-      </span>
-    </>
-  );
+
+export function Identity({ user }) {
+    const displayName = user?.name || user?.login || 'Пользователь';
+    const initial = displayName.charAt(0).toUpperCase();
+
+    return (
+        <div className="identity">
+            <div className="avatar">
+                {initial}
+            </div>
+
+            <div className="identity-info">
+                <strong>{displayName}</strong>
+                <span>{user?.description || 'Участник PixelFlow'}</span>
+            </div>
+        </div>
+    );
 }
 
 function Adjustments({ operations, onAdjust, busy }) {
